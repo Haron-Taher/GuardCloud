@@ -1,13 +1,18 @@
+<script setup>
+import AboutStorageButton from '~/components/landing/aboutstoragebutton.vue';
+import AboutSecurityButton from '~/components/landing/aboutsecuritybutton.vue';
+import GotoRegisterButton from '~/components/landing/gotoregisterbutton.vue'
+</script>
+
 <template>
   <div class="modern-form">
     <div class="form-title">
-        CloudGuard: How do I make buttons?
+        CloudGuard
     </div>
 
-    <div class="form-body">
-        
-    </div>
-
+    <AboutStorageButton />
+    <AboutSecurityButton />
+    <GotoRegisterButton />
 </div>
 </template>
 
@@ -24,12 +29,13 @@
 
     display: flex;
     position: absolute;
+    align-items: center;
     margin-top: 10px;
     width: 98%;
     height: 80px;
     top: 0;
-    padding: 24px;
-    background: #dbdbdb;
+    padding: 15px;
+    background: #ffffff;
     border-radius: 16px;
     box-shadow:
       0 4px 6px -1px rgba(0, 0, 0, 0.1),
@@ -40,7 +46,7 @@
 
   .form-title 
   {
-    font-size: 22px; font-weight: 600; color: var(--text-main);
-    margin: 0 0 24px; text-align: center; letter-spacing: -0.01em;
+    font-size: 30px; font-weight: 600; color: var(--text-main);
+    margin: 0px 70px 0px; text-align: center; letter-spacing: -0.01em;
   }
 </style>
