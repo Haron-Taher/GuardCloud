@@ -9,7 +9,6 @@ import GotoRegisterButton from '~/components/landing/gotoregisterbutton.vue'
     <div class="form-title">
         CloudGuard
     </div>
-
     <AboutStorageButton />
     <AboutSecurityButton />
     <GotoRegisterButton />

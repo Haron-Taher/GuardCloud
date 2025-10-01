@@ -1,8 +1,10 @@
 <template>
-  <button class="goto-register-button" type="button">
-    <span class="button-text">Log In / Register</span>
-    <div class="button-glow"></div>
-  </button>
+    <NuxtLink to=/login class="goto-register-button">
+        <button class="goto-register-button" type="button">
+            <span class="button-text">Log In</span>
+            <div class="button-glow"></div>
+        </button>
+    </NuxtLink>
 </template>
 
 <style scoped>
