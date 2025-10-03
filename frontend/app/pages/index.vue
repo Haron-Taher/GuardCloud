@@ -1,14 +1,9 @@
 <script setup>
-
+import TopPanel from '~/components/landing/toppanel.vue'
 </script>
 
 <template>
-<div class="p-6 my-10 rounded-2xl border shadow text-center">
-  Tailwind is live ✨
-</div>
-
+      <div style="min-height:100vh; display:grid; place-items:center; background:#f1f5f9;">
+        <TopPanel />
+      </div>
 </template>
-
-<style scoped>
-
-</style>
