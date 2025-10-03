@@ -1,7 +1,7 @@
 <script setup>
 import AboutStorageButton from '~/components/landing/aboutstoragebutton.vue';
 import AboutSecurityButton from '~/components/landing/aboutsecuritybutton.vue';
-import GotoRegisterButton from '~/components/landing/gotoregisterbutton.vue'
+import ToAuthButton from '~/components/landing/toauthbutton.vue'
 </script>
 
 <template>
@@ -11,7 +11,7 @@ import GotoRegisterButton from '~/components/landing/gotoregisterbutton.vue'
     </div>
     <AboutStorageButton />
     <AboutSecurityButton />
-    <GotoRegisterButton />
+    <ToAuthButton />
 </div>
 </template>
 
