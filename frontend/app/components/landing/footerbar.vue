@@ -14,8 +14,8 @@ import logo from '~/assets/logos/securecloud.png'
         <a href="#features">Features</a>
         <a href="#security">Security</a>
         <a href="#pricing">Pricing</a>
-        <NuxtLink to="/privacy">Privacy</NuxtLink>
-        <NuxtLink to="/terms">Terms</NuxtLink>
+        <NuxtLink to="/">Privacy</NuxtLink>
+        <NuxtLink to="/">Terms</NuxtLink>
       </nav>
     </div>
   </footer>

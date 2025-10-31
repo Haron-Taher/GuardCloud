@@ -2,6 +2,8 @@
   <button class="submit-button" type="submit">
     <span class="button-text">Log In</span>
     <div class="button-glow"></div>
+    <NuxtLink to="/dashboard" class="submit-button">
+    </NuxtLink>
   </button>
 </template>
 
