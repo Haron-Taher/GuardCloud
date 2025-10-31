@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-python-dotenv
-bcrypt
-PyJWT
-requests
-sqlcipher3
