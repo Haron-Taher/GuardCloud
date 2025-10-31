@@ -1,7 +1,7 @@
-export default defineAppConfig({
-    //stuff we want to share across the app
-    devtools: {
-    enabled: false
-  } 
-  
+export default defineAppConfig(
+{
+  brand:
+  {
+    name: 'GuardCloud'
+  }
 })
