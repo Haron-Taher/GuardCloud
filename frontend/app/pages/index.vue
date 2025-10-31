@@ -1,9 +1,7 @@
 <script setup>
-import TopPanel from '~/components/landing/toppanel.vue'
+import IndexCard from '~/components/landing/indexcard.vue'
 </script>
 
 <template>
-      <div style="min-height:100vh; display:grid; place-items:center; background:#f1f5f9;">
-        <TopPanel />
-      </div>
+  <IndexCard />
 </template>
