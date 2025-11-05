@@ -103,7 +103,7 @@ watchEffect(() =>
             :key="l.id"
             :href="`#${l.id}`"
             class="pill"
-            :aria-current="l.id === current ? 'page' : null"
+            :aria-current="l.id === current ? 'page' : undefined"
           >
             {{ l.label }}
           </a>

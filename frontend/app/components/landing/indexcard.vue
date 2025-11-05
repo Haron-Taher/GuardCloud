@@ -1,8 +1,8 @@
 <script setup>
-import NavPills from './NavPills.vue'
-import HeroSection from './HeroSection.vue'
-import MainSections from './MainSections.vue'
-import FooterBar from './FooterBar.vue'
+import NavPills from './navpills.vue'
+import HeroSection from './herosection.vue'
+import MainSections from './mainsections.vue'
+import FooterBar from './footerbar.vue'
 </script>
 
 <template>
