@@ -732,6 +732,20 @@ onBeforeUnmount(() =>
   font-size: 12px;
 }
 
+@media only screen and (max-width: 940px)
+{
+  .q-top
+  {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 12px;
+  }
+}
+
+
 .q-bar
 {
   margin-top: 8px;
