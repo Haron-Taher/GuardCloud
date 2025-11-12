@@ -114,7 +114,7 @@
               @keydown.space.prevent="onOpen(f)"
             >
               <div class="thumb">
-                <img :src="iconFor(f)" alt="" />
+                <img :src="iconFor(f)" alt="" style="max-height: 48px" />
               </div>
 
               <div class="meta">
@@ -198,7 +198,76 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import logo from '~/assets/logos/securecloud.png'
 
+// file icons
+import testdog from '~/assets/fileicons/testdog.png'
+
+import ico_txt   from '~/assets/fileicons/free-file-icons/48px/txt.png'
+import ico_png   from '~/assets/fileicons/free-file-icons/48px/png.png'
+import ico_jpg   from '~/assets/fileicons/free-file-icons/48px/jpg.png'
+import ico_aac   from '~/assets/fileicons/free-file-icons/48px/aac.png'
+import ico_aiff  from '~/assets/fileicons/free-file-icons/48px/aiff.png'
+import ico_ai    from '~/assets/fileicons/free-file-icons/48px/ai.png'
+import ico_avi   from '~/assets/fileicons/free-file-icons/48px/avi.png'
+import ico_blank from '~/assets/fileicons/free-file-icons/48px/_blank.png'
+import ico_bmp   from '~/assets/fileicons/free-file-icons/48px/bmp.png'
+import ico_c     from '~/assets/fileicons/free-file-icons/48px/c.png'
+import ico_cpp   from '~/assets/fileicons/free-file-icons/48px/cpp.png'
+import ico_css   from '~/assets/fileicons/free-file-icons/48px/css.png'
+import ico_csv   from '~/assets/fileicons/free-file-icons/48px/csv.png'
+import ico_dat   from '~/assets/fileicons/free-file-icons/48px/dat.png'
+import ico_dmg   from '~/assets/fileicons/free-file-icons/48px/dmg.png'
+import ico_doc   from '~/assets/fileicons/free-file-icons/48px/doc.png'
+import ico_dotx  from '~/assets/fileicons/free-file-icons/48px/dotx.png'
+import ico_dwg   from '~/assets/fileicons/free-file-icons/48px/dwg.png'
+import ico_dxf   from '~/assets/fileicons/free-file-icons/48px/dxf.png'
+import ico_eps   from '~/assets/fileicons/free-file-icons/48px/eps.png'
+import ico_exe   from '~/assets/fileicons/free-file-icons/48px/exe.png'
+import ico_flv   from '~/assets/fileicons/free-file-icons/48px/flv.png'
+import ico_gif   from '~/assets/fileicons/free-file-icons/48px/gif.png'
+import ico_h     from '~/assets/fileicons/free-file-icons/48px/h.png'
+import ico_hpp   from '~/assets/fileicons/free-file-icons/48px/hpp.png'
+import ico_html  from '~/assets/fileicons/free-file-icons/48px/html.png'
+import ico_iso   from '~/assets/fileicons/free-file-icons/48px/iso.png'
+import ico_java  from '~/assets/fileicons/free-file-icons/48px/java.png'
+import ico_js    from '~/assets/fileicons/free-file-icons/48px/js.png'
+import ico_key   from '~/assets/fileicons/free-file-icons/48px/key.png'
+import ico_less  from '~/assets/fileicons/free-file-icons/48px/less.png'
+import ico_mid   from '~/assets/fileicons/free-file-icons/48px/mid.png'
+import ico_mp3   from '~/assets/fileicons/free-file-icons/48px/mp3.png'
+import ico_mp4   from '~/assets/fileicons/free-file-icons/48px/mp4.png'
+import ico_mpg   from '~/assets/fileicons/free-file-icons/48px/mpg.png'
+import ico_odf   from '~/assets/fileicons/free-file-icons/48px/odf.png'
+import ico_ods   from '~/assets/fileicons/free-file-icons/48px/ods.png'
+import ico_odt   from '~/assets/fileicons/free-file-icons/48px/odt.png'
+import ico_otp   from '~/assets/fileicons/free-file-icons/48px/otp.png'
+import ico_ots   from '~/assets/fileicons/free-file-icons/48px/ots.png'
+import ico_ott   from '~/assets/fileicons/free-file-icons/48px/ott.png'
+import ico_page  from '~/assets/fileicons/free-file-icons/48px/_page.png'
+import ico_pdf   from '~/assets/fileicons/free-file-icons/48px/pdf.png'
+import ico_php   from '~/assets/fileicons/free-file-icons/48px/php.png'
+import ico_ppt   from '~/assets/fileicons/free-file-icons/48px/ppt.png'
+import ico_psd   from '~/assets/fileicons/free-file-icons/48px/psd.png'
+import ico_py    from '~/assets/fileicons/free-file-icons/48px/py.png'
+import ico_qt    from '~/assets/fileicons/free-file-icons/48px/qt.png'
+import ico_rar   from '~/assets/fileicons/free-file-icons/48px/rar.png'
+import ico_rb    from '~/assets/fileicons/free-file-icons/48px/rb.png'
+import ico_rtf   from '~/assets/fileicons/free-file-icons/48px/rtf.png'
+import ico_sass  from '~/assets/fileicons/free-file-icons/48px/sass.png'
+import ico_scss  from '~/assets/fileicons/free-file-icons/48px/scss.png'
+import ico_sql   from '~/assets/fileicons/free-file-icons/48px/sql.png'
+import ico_tga   from '~/assets/fileicons/free-file-icons/48px/tga.png'
+import ico_tgz   from '~/assets/fileicons/free-file-icons/48px/tgz.png'
+import ico_tiff  from '~/assets/fileicons/free-file-icons/48px/tiff.png'
+import ico_xls   from '~/assets/fileicons/free-file-icons/48px/xls.png'
+import ico_xlsx  from '~/assets/fileicons/free-file-icons/48px/xlsx.png'
+import ico_xml   from '~/assets/fileicons/free-file-icons/48px/xml.png'
+import ico_yml   from '~/assets/fileicons/free-file-icons/48px/yml.png'
+import ico_zip   from '~/assets/fileicons/free-file-icons/48px/zip.png'
+
+
+
 const section = ref('drive')
+
 
 const query = ref('')
 
@@ -302,7 +371,93 @@ const toggleStar = (f) =>
   f.starred = !f.starred
 }
 
-const iconFor = () => logo
+const getExt = (f) =>
+{
+  const f_name_string = String(f.name)
+
+  const parts = f_name_string.split('.')
+  if(parts.length > 1)
+  {
+    return parts.pop().toLocaleLowerCase()
+  }
+
+  return 'folder'
+}
+
+const iconFor = (f) =>
+{
+  const f_ext = String(getExt(f))
+  
+  switch(f_ext) 
+  {                              
+    case "txt":  return ico_txt;                  
+    case "png":  return ico_png;                  
+    case "jpg":  return ico_jpg;                  
+    case "jpeg": return ico_jpg;                 
+    case "aac":  return ico_aac;                  
+    case "aiff": return ico_aiff;                
+    case "ai":   return ico_ai;                    
+    case "avi":  return ico_avi;                  
+    case "bmp":  return ico_bmp;                  
+    case "c":    return ico_c;                      
+    case "cpp":  return ico_cpp;                  
+    case "css":  return ico_css;                  
+    case "csv":  return ico_csv;                  
+    case "dat":  return ico_dat;                  
+    case "dmg":  return ico_dmg;                  
+    case "doc":  return ico_doc;                  
+    case "docx": return ico_doc;                 
+    case "dotx": return ico_dotx;                
+    case "dwg":  return ico_dwg;                  
+    case "dxf":  return ico_dxf;                  
+    case "eps":  return ico_eps;                  
+    case "exe":  return ico_exe;                  
+    case "flv":  return ico_flv;                  
+    case "gif":  return ico_gif;                  
+    case "h":    return ico_h;                      
+    case "hpp":  return ico_hpp;                  
+    case "html": return ico_html;                
+    case "ics":  return ico_ics;                  
+    case "iso":  return ico_iso;                  
+    case "java": return ico_java;                
+    case "js":   return ico_js;                    
+    case "key":  return ico_key;                  
+    case "less": return ico_less;                
+    case "mid":  return ico_mid;                  
+    case "mp3":  return ico_mp3;                  
+    case "mp4":  return ico_mp4;                  
+    case "mpg":  return ico_mpg;                  
+    case "odf":  return ico_odf;                  
+    case "ods":  return ico_ods;                  
+    case "odt":  return ico_odt;                  
+    case "otp":  return ico_otp;                  
+    case "ots":  return ico_ots;                  
+    case "ott":  return ico_ott;                  
+    case "pdf":  return ico_pdf;                  
+    case "php":  return ico_php;                  
+    case "ppt":  return ico_ppt;                  
+    case "pptx": return ico_ppt;                 
+    case "psd":  return ico_psd;                  
+    case "py":   return ico_py;                    
+    case "qt":   return ico_qt;                    
+    case "rar":  return ico_rar;                  
+    case "rb":   return ico_rb;                    
+    case "rtf":  return ico_rtf;                  
+    case "sass": return ico_sass;                
+    case "scss": return ico_scss;                
+    case "sql":  return ico_sql;                  
+    case "tga":  return ico_tga;                  
+    case "tgz":  return ico_tgz;                  
+    case "tiff": return ico_tiff;                
+    case "wav":  return ico_wav;                  
+    case "xls":  return ico_xls;                  
+    case "xlsx": return ico_xls;                 
+    case "xml":  return ico_xml;                  
+    case "yml":  return ico_yml;                  
+    case "zip":  return ico_zip;                  
+    default:     return ico_blank;
+  }
+}
 
 const prettySize = (n) =>
 {
