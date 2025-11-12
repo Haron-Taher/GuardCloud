@@ -199,8 +199,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import logo from '~/assets/logos/securecloud.png'
 
 // file icons
-import testdog from '~/assets/fileicons/testdog.png'
-
 import ico_txt   from '~/assets/fileicons/free-file-icons/48px/txt.png'
 import ico_png   from '~/assets/fileicons/free-file-icons/48px/png.png'
 import ico_jpg   from '~/assets/fileicons/free-file-icons/48px/jpg.png'
