@@ -276,6 +276,8 @@ import ico_xml   from '~/assets/free-file-icons/48px/xml.png'
 import ico_yml   from '~/assets/free-file-icons/48px/yml.png'
 import ico_zip   from '~/assets/free-file-icons/48px/zip.png'
 
+import ico_dir   from '~/assets/free-file-icons/48px/Gemini_Generated_Image_ivszpaivszpaivsz_48px.png'
+
 const section = ref('drive')
 
 const query = ref('')
@@ -396,6 +398,8 @@ const getExt = (f) =>
 const iconFor = (f) =>
 {
   const f_ext = String(getExt(f))
+
+  if(f_ext == 'folder') { return ico_dir }
   
   switch(f_ext) 
   {                              
