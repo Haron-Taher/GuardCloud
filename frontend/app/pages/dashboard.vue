@@ -55,7 +55,7 @@
             :class="{ active: section === item.key }"
             @click="section = item.key"
           >
-            <img :src="logo" alt="" width="18" height="18" />
+            <img :src=item.icon alt="" width="18" height="18" onerror="this.src=item.icon_fallback"/>
             <span class="label">{{ item.label }}</span>
           </button>
         </nav>
@@ -198,6 +198,20 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import logo from '~/assets/logos/securecloud.png'
 
+// ui icons
+
+import ui_cloud  from '~/assets/ui-icons/cloud_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg'
+import ui_shared from '~/assets/ui-icons/folder_supervised_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg'
+import ui_recent from '~/assets/ui-icons/history_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg'
+import ui_trash  from '~/assets/ui-icons/delete_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg'
+import ui_fav    from '~/assets/ui-icons/star_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg'
+
+import ui_cloud_png  from '~/assets/ui-icons/cloud_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png'
+import ui_shared_png from '~/assets/ui-icons/folder_supervised_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png'
+import ui_recent_png from '~/assets/ui-icons/history_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png'
+import ui_trash_png  from '~/assets/ui-icons/delete_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png'
+import ui_fav_png    from '~/assets/ui-icons/star_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.png'
+
 // file icons
 import ico_txt   from '~/assets/free-file-icons/48px/txt.png'
 import ico_png   from '~/assets/free-file-icons/48px/png.png'
@@ -262,10 +276,7 @@ import ico_xml   from '~/assets/free-file-icons/48px/xml.png'
 import ico_yml   from '~/assets/free-file-icons/48px/yml.png'
 import ico_zip   from '~/assets/free-file-icons/48px/zip.png'
 
-
-
 const section = ref('drive')
-
 
 const query = ref('')
 
@@ -293,11 +304,11 @@ const fileEl = ref(null)
 
 const items =
 [
-  { key: 'drive',   label: 'My Drive' },
-  { key: 'shared',  label: 'Shared with me' },
-  { key: 'recent',  label: 'Recent' },
-  { key: 'starred', label: 'Starred' },
-  { key: 'trash',   label: 'Trash' }
+  { key: 'drive',   icon: ui_cloud,  icon_fallback: ui_cloud_png,  label: 'My Drive' },
+  { key: 'shared',  icon: ui_shared, icon_fallback: ui_shared_png, label: 'Shared with me' },
+  { key: 'recent',  icon: ui_recent, icon_fallback: ui_recent_png, label: 'Recent' },
+  { key: 'starred', icon: ui_fav,    icon_fallback: ui_fav_png,    label: 'Starred' },
+  { key: 'trash',   icon: ui_trash,  icon_fallback: ui_trash_png,  label: 'Trash' }
 ]
 
 const data = ref([
@@ -388,71 +399,71 @@ const iconFor = (f) =>
   
   switch(f_ext) 
   {                              
-    case "txt":  return ico_txt;                  
-    case "png":  return ico_png;                  
-    case "jpg":  return ico_jpg;                  
+    case "txt":  return ico_txt;
+    case "md":   return ico_txt;
+    case "png":  return ico_png;
+    case "jpg":  return ico_jpg;
     case "jpeg": return ico_jpg;                 
-    case "aac":  return ico_aac;                  
+    case "aac":  return ico_aac;
     case "aiff": return ico_aiff;                
-    case "ai":   return ico_ai;                    
-    case "avi":  return ico_avi;                  
-    case "bmp":  return ico_bmp;                  
-    case "c":    return ico_c;                      
-    case "cpp":  return ico_cpp;                  
-    case "css":  return ico_css;                  
-    case "csv":  return ico_csv;                  
-    case "dat":  return ico_dat;                  
-    case "dmg":  return ico_dmg;                  
-    case "doc":  return ico_doc;                  
+    case "ai":   return ico_ai;  
+    case "avi":  return ico_avi;
+    case "bmp":  return ico_bmp;
+    case "c":    return ico_c;   
+    case "cpp":  return ico_cpp;
+    case "css":  return ico_css;
+    case "csv":  return ico_csv;
+    case "dat":  return ico_dat;
+    case "dmg":  return ico_dmg;
+    case "doc":  return ico_doc;
     case "docx": return ico_doc;                 
     case "dotx": return ico_dotx;                
-    case "dwg":  return ico_dwg;                  
-    case "dxf":  return ico_dxf;                  
-    case "eps":  return ico_eps;                  
-    case "exe":  return ico_exe;                  
-    case "flv":  return ico_flv;                  
-    case "gif":  return ico_gif;                  
-    case "h":    return ico_h;                      
-    case "hpp":  return ico_hpp;                  
-    case "html": return ico_html;                
-    case "ics":  return ico_ics;                  
-    case "iso":  return ico_iso;                  
+    case "dwg":  return ico_dwg;
+    case "dxf":  return ico_dxf;
+    case "eps":  return ico_eps;
+    case "exe":  return ico_exe;
+    case "flv":  return ico_flv;
+    case "gif":  return ico_gif;
+    case "h":    return ico_h;   
+    case "hpp":  return ico_hpp;
+    case "html": return ico_html;   
+    case "iso":  return ico_iso;
     case "java": return ico_java;                
-    case "js":   return ico_js;                    
-    case "key":  return ico_key;                  
+    case "js":   return ico_js;  
+    case "key":  return ico_key;
     case "less": return ico_less;                
-    case "mid":  return ico_mid;                  
-    case "mp3":  return ico_mp3;                  
-    case "mp4":  return ico_mp4;                  
-    case "mpg":  return ico_mpg;                  
-    case "odf":  return ico_odf;                  
-    case "ods":  return ico_ods;                  
-    case "odt":  return ico_odt;                  
-    case "otp":  return ico_otp;                  
-    case "ots":  return ico_ots;                  
-    case "ott":  return ico_ott;                  
-    case "pdf":  return ico_pdf;                  
-    case "php":  return ico_php;                  
-    case "ppt":  return ico_ppt;                  
+    case "mid":  return ico_mid;
+    case "mp3":  return ico_mp3;
+    case "mp4":  return ico_mp4;
+    case "mpg":  return ico_mpg;
+    case "odf":  return ico_odf;
+    case "ods":  return ico_ods;
+    case "odt":  return ico_odt;
+    case "otp":  return ico_otp;
+    case "ots":  return ico_ots;
+    case "ott":  return ico_ott;
+    case "pdf":  return ico_pdf;
+    case "php":  return ico_php;
+    case "ppt":  return ico_ppt;
     case "pptx": return ico_ppt;                 
-    case "psd":  return ico_psd;                  
-    case "py":   return ico_py;                    
-    case "qt":   return ico_qt;                    
-    case "rar":  return ico_rar;                  
-    case "rb":   return ico_rb;                    
-    case "rtf":  return ico_rtf;                  
+    case "psd":  return ico_psd;
+    case "py":   return ico_py;  
+    case "qt":   return ico_qt;  
+    case "rar":  return ico_rar;
+    case "rb":   return ico_rb;  
+    case "rtf":  return ico_rtf;
     case "sass": return ico_sass;                
     case "scss": return ico_scss;                
-    case "sql":  return ico_sql;                  
-    case "tga":  return ico_tga;                  
-    case "tgz":  return ico_tgz;                  
+    case "sql":  return ico_sql;
+    case "tga":  return ico_tga;
+    case "tgz":  return ico_tgz;
     case "tiff": return ico_tiff;                
-    case "wav":  return ico_wav;                  
-    case "xls":  return ico_xls;                  
+    case "wav":  return ico_wav;
+    case "xls":  return ico_xls;
     case "xlsx": return ico_xls;                 
-    case "xml":  return ico_xml;                  
-    case "yml":  return ico_yml;                  
-    case "zip":  return ico_zip;                  
+    case "xml":  return ico_xml;
+    case "yml":  return ico_yml;
+    case "zip":  return ico_zip;
     default:     return ico_blank;
   }
 }
