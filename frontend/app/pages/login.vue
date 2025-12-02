@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { useAuth } from '~/composables/useAuth'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthState } from '~/composables/useAuth'
 
 import LoginCard from '~/components/login/logincard.vue'
 import UsernameField from '~/components/auth/usernamefield.vue'
@@ -8,22 +9,47 @@ import PasswordField from '~/components/auth/passwordfield.vue'
 import LoginButton from '~/components/login/loginbutton.vue'
 import ToSignup from '~/components/login/tosignup.vue'
 
-const { login, loading, error } = useAuth()
-
 const router = useRouter()
 
-const username = ref('')
+const { authState, isLoggedIn, login } = useAuthState()
 
+const username = ref('')
 const password = ref('')
 
+const loading = ref(false)
+const error = ref('')
 
 const onSubmit = async () =>
 {
-  const ok = true //await login(username.value, password.value)
+  if (loading.value) return
 
-  if (ok) router.push('/dashboard')
+  loading.value = true
+  error.value = ''
+
+  try
+  {
+    await login(username.value, password.value)
+
+    if (isLoggedIn.value && authState.token)
+    {
+      router.push('/dashboard')
+    }
+    else
+    {
+      error.value = 'Invalid username or password'
+    }
+  }
+  catch (e: any)
+  {
+    error.value = e?.response?.data?.detail || 'Login failed'
+  }
+  finally
+  {
+    loading.value = false
+  }
 }
 </script>
+
 
 <template>
   <div class="auth">

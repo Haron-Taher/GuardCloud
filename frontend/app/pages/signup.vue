@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { useAuth } from '~/composables/useAuth'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthState } from '~/composables/useAuth'
 
 import SignupCard from '~/components/signup/signupcard.vue'
 import UsernameField from '~/components/auth/usernamefield.vue'
@@ -9,22 +10,37 @@ import PasswordField from '~/components/auth/passwordfield.vue'
 import SignupButton from '~/components/signup/signupbutton.vue'
 import ToLogin from '~/components/signup/tologin.vue'
 
-const { signup, loading, error } = useAuth()
-
 const router = useRouter()
 
+const { signup } = useAuthState()
+
 const username = ref('')
-
-const email = ref('')   // collected for UI; backend POC ignores for now
-
+const email = ref('')
 const password = ref('')
 
+const loading = ref(false)
+const error = ref('')
 
 const onSubmit = async () =>
 {
-  const ok = await signup(username.value, password.value)
+  if (loading.value) return
 
-  if (ok) router.push('/dashboard')
+  loading.value = true
+  error.value = ''
+
+  try
+  {
+    await signup(username.value, password.value, email.value)
+    router.push('/login')
+  }
+  catch (e: any)
+  {
+    error.value = e?.response?.data?.detail || 'Signup failed'
+  }
+  finally
+  {
+    loading.value = false
+  }
 }
 </script>
 
@@ -42,9 +58,8 @@ const onSubmit = async () =>
           </div>
 
           <SignupButton :disabled="loading" />
-
           <p v-if="error" class="err">{{ error }}</p>
-
+          
           <ToLogin />
         </form>
       </SignupCard>

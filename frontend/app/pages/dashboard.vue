@@ -197,8 +197,8 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import logo from '~/assets/logos/securecloud.png'
+import { useFilesState } from '~/composables/useFiles'
 
-// ui icons
 
 import ui_cloud  from '~/assets/ui-icons/cloud_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg'
 import ui_shared from '~/assets/ui-icons/folder_supervised_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg'
@@ -313,15 +313,34 @@ const items =
   { key: 'trash',   icon: ui_trash,  icon_fallback: ui_trash_png,  label: 'Trash' }
 ]
 
-const data = ref([
-  { id: '1', name: 'Quarterly Report.pdf', type: 'pdf',    size: 1920000,  modified: Date.now() - 3600e3,   owner: 'Haron',  starred: true,  sharedWith: ['Luis'] },
-  { id: '2', name: 'Designs',              type: 'folder', size: 0,        modified: Date.now() - 86400e3,  owner: 'Haron',  starred: false, sharedWith: [] },
-  { id: '3', name: 'Budget.xlsx',          type: 'sheet',  size: 820000,   modified: Date.now() - 7200e3,   owner: 'Haron',  starred: false, sharedWith: ['Team'] },
-  { id: '4', name: 'Pitch Deck.pptx',      type: 'slides', size: 2300000,  modified: Date.now() - 172800e3, owner: 'Haron',  starred: true,  sharedWith: ['Serafin', 'Zab'] },
-  { id: '5', name: 'Meeting Notes.md',     type: 'doc',    size: 54000,    modified: Date.now() - 5400e3,   owner: 'Haron',  starred: false, sharedWith: [] },
-  { id: '6', name: 'Images',               type: 'folder', size: 0,        modified: Date.now() - 345600e3, owner: 'Haron',  starred: false, sharedWith: [] },
-  { id: '7', name: 'Contract.docx',        type: 'doc',    size: 410000,   modified: Date.now() - 21600e3,  owner: 'Legal',  starred: false, sharedWith: ['Partner Co'] }
-])
+const { files, fetchFiles, upload } = useFilesState()
+
+const data = ref([])
+
+const syncDataFromFiles = () =>
+{
+  data.value = files.value.map((f) =>
+  {
+    const created = f.created_at ? new Date(f.created_at).getTime() : Date.now()
+
+    return {
+      id: String(f.id),
+      name: f.filename,
+      type: 'file',          // everything from backend is a "file" for now
+      size: f.size,
+      modified: created,
+      owner: 'You',
+      starred: false,
+      sharedWith: []
+    }
+  })
+}
+
+const loadFiles = async () =>
+{
+  await fetchFiles()
+  syncDataFromFiles()
+}
 
 const filtered = computed(() =>
 {
@@ -518,72 +537,50 @@ const onUpload = () =>
   fileEl.value?.click()
 }
 
-const handleFiles = async (e) =>
+const uploadFiles = async (filesList) =>
 {
-  const files = Array.from(e.target.files || [])
-  if (!files.length) return
+  if (!filesList.length) return
 
-  await simulateUpload(files)
-
-  files.forEach((f) =>
-  {
-    const now = Date.now()
-    data.value.unshift({
-      id: String(now + Math.random()),
-      name: f.name,
-      type: 'file',
-      size: f.size,
-      modified: now,
-      owner: 'Haron',
-      starred: false,
-      sharedWith: []
-    })
-  })
-
-  uploading.value = false
-  progress.value = 0
-  e.target.value = ''
-}
-
-const simulateUpload = async (files) =>
-{
   uploading.value = true
   progress.value = 0
 
-  while (progress.value < 100)
+  try
   {
-    await new Promise(r => setTimeout(r, 80))
-    progress.value = Math.min(100, progress.value + Math.random() * 6 + 2)
-  }
+    const total = filesList.length
+    let done = 0
 
-  await new Promise(r => setTimeout(r, 150))
+    for (const f of filesList)
+    {
+      await upload(f)
+      done += 1
+      progress.value = Math.round((done / total) * 100)
+    }
+
+    await loadFiles()
+  }
+  catch (err)
+  {
+    console.error('Upload failed', err)
+  }
+  finally
+  {
+    uploading.value = false
+    progress.value = 0
+  }
+}
+
+const handleFiles = async (e) =>
+{
+  const filesList = Array.from(e.target.files || [])
+  await uploadFiles(filesList)
+  e.target.value = ''
 }
 
 const handleDrop = async (ev) =>
 {
   dragActive.value = false
-  const files = Array.from(ev.dataTransfer?.files || [])
-  if (!files.length) return
-
-  await simulateUpload(files)
-
-  files.forEach((f) =>
-  {
-    const now = Date.now()
-    data.value.unshift({
-      id: String(now + Math.random()),
-      name: f.name,
-      type: 'file',
-      size: f.size,
-      modified: now,
-      owner: 'Haron',
-      starred: false,
-      sharedWith: []
-    })
-  })
-
-  uploading.value = false
-  progress.value = 0
+  const filesList = Array.from(ev.dataTransfer?.files || [])
+  await uploadFiles(filesList)
 }
 
 const onEsc = (e) =>
@@ -609,9 +606,11 @@ const onGlobalClick = (e) =>
 
 onMounted(() =>
 {
+  loadFiles()
   document.addEventListener('keydown', onEsc)
   document.addEventListener('click', onGlobalClick)
 })
+
 
 onBeforeUnmount(() =>
 {

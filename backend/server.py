@@ -67,6 +67,7 @@ async def signup(request: Request):
     data = await request.json()
     username = data.get("username")
     password = data.get("password")
+    email = data.get("email")
 
     if not username or not password:
         raise HTTPException(status_code=400, detail="Username and password are required")
@@ -78,7 +79,7 @@ async def signup(request: Request):
 
     hashed = hash_it(password)
 
-    ok = signup_db(username, hashed)
+    ok = signup_db(username, hashed, email)
     if not ok:
         # signup_db already prints details; just return generic error to client
         raise HTTPException(status_code=400, detail="Could not create user")

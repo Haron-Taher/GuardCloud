@@ -1,76 +1,70 @@
-export function useAuth()
-{
-  const loading = ref(false)
+import { reactive, computed } from 'vue'
+import api from '~/utils/apiClient'
 
-  const error = ref<string | null>(null)
+type AuthState = {
+  token: string
+  username: string
+}
 
-  const user = useState('user', () => null as null | { username: string })
+const authState = reactive<AuthState>({
+  token: '',
+  username: ''
+})
 
+if (process.client) {
+  const storedToken = localStorage.getItem('gc_token')
+  const storedUser = localStorage.getItem('gc_user')
 
-  const base = (useRuntimeConfig().public as any)?.apiBase || 'http://localhost:8000'
+  if (storedToken && storedUser) {
+    authState.token = storedToken
+    authState.username = storedUser
+  }
+}
 
+export function useAuthState() {
+  const isLoggedIn = computed(() => !!authState.token)
 
-  const login = async (username: string, password: string) =>
-  {
-    loading.value = true
-    error.value = null
+  async function login(username: string, password: string) {
+    const res = await api.post('/auth/login', {
+      username,
+      password
+    })
 
-    try
-    {
-      const res: any = await $fetch(`${base}/auth/login`, {
-        method: 'POST',
-        body: { username, password }
-      })
+    const token = res.data.token as string
 
-      user.value = res?.user || { username }
+    authState.token = token
+    authState.username = username
 
-      return true
-    }
-    catch (e: any)
-    {
-      error.value = e?.data?.detail || e?.message || 'Login failed'
-      return false
-    }
-    finally
-    {
-      loading.value = false
+    if (process.client) {
+      localStorage.setItem('gc_token', token)
+      localStorage.setItem('gc_user', username)
     }
   }
 
+  async function signup(username: string, password: string, email: string) {
+    await api.post('/auth/signup', {
+      username,
+      password,
+      email
+    })
+    // decide in the component whether to auto-login or redirect to /login
+  }
 
-  const signup = async (username: string, password: string) =>
-  {
-    loading.value = true
-    error.value = null
+  function logout() {
+    authState.token = ''
+    authState.username = ''
 
-    try
-    {
-      const res: any = await $fetch(`${base}/auth/signup`, {
-        method: 'POST',
-        body: { username, password }
-      })
-
-      user.value = res?.user || { username }
-
-      return true
-    }
-    catch (e: any)
-    {
-      error.value = e?.data?.detail || e?.message || 'Signup failed'
-      return false
-    }
-    finally
-    {
-      loading.value = false
+    if (process.client) {
+      localStorage.removeItem('gc_token')
+      localStorage.removeItem('gc_user')
     }
   }
 
-
-  const logout = () =>
-  {
-    user.value = null
+  return {
+    authState,
+    isLoggedIn,
+    login,
+    signup,
+    logout
   }
-
-
-  return { login, signup, logout, loading, error, user }
 }
