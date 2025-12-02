@@ -2,181 +2,216 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthState } from '~/composables/useAuth'
-
-import UsernameField from '~/components/auth/usernamefield.vue'
-import PasswordField from '~/components/auth/passwordfield.vue'
-import ToSignup from '~/components/login/tosignup.vue'
+import { GcButton, GcInput, GcCard } from '~/components/ui'
+import IconUser from '~/components/icons/IconUser.vue'
+import IconLock from '~/components/icons/IconLock.vue'
 
 const router = useRouter()
-
-const { authState, isLoggedIn, login } = useAuthState()
+const { login, isLoggedIn, authState } = useAuthState()
 
 const username = ref('')
 const password = ref('')
-
 const loading = ref(false)
 const error = ref('')
 
-const onSubmit = async () =>
-{
+const onSubmit = async () => {
   if (loading.value) return
-
+  
   loading.value = true
   error.value = ''
 
-  try
-  {
+  try {
     await login(username.value, password.value)
-
-    if (isLoggedIn.value && authState.token)
-    {
+    if (isLoggedIn.value && authState.token) {
       router.push('/dashboard')
-    }
-    else
-    {
+    } else {
       error.value = 'Invalid username or password'
     }
-  }
-  catch (e: any)
-  {
-    error.value = e?.response?.data?.detail || 'Login failed'
-  }
-  finally
-  {
+  } catch (e: any) {
+    error.value = e?.response?.data?.detail || 'Login failed. Please try again.'
+  } finally {
     loading.value = false
   }
 }
 </script>
 
 <template>
-  <div class="auth">
-    <div class="wrap">
-      <form class="modern-form" @submit.prevent="onSubmit">
-        <div class="form-title">Login</div>
+  <div class="auth-page">
+    <div class="auth-container">
+      <!-- Logo -->
+      <NuxtLink to="/" class="auth-logo">
+        <img src="~/assets/logos/securecloud.png" width="40" height="40" alt="GuardCloud" />
+        <span>GuardCloud</span>
+      </NuxtLink>
 
-        <div class="form-body">
-          <UsernameField v-model="username" />
-          <PasswordField v-model="password" />
+      <!-- Card -->
+      <GcCard variant="elevated" class="auth-card">
+        <div class="auth-header">
+          <h1>Welcome back</h1>
+          <p>Sign in to your account to continue</p>
         </div>
 
-        <button class="submit-button" type="submit" :disabled="loading">
-          <span class="button-text">{{ loading ? 'Logging in...' : 'Log In' }}</span>
-          <div class="button-glow"></div>
-        </button>
+        <form @submit.prevent="onSubmit" class="auth-form">
+          <GcInput
+            v-model="username"
+            label="Username"
+            placeholder="Enter your username"
+            :icon="IconUser"
+            required
+            autocomplete="username"
+          />
 
-        <p v-if="error" class="err">{{ error }}</p>
+          <GcInput
+            v-model="password"
+            type="password"
+            label="Password"
+            placeholder="Enter your password"
+            :icon="IconLock"
+            required
+            autocomplete="current-password"
+          />
 
-        <ToSignup />
-      </form>
+          <Transition name="fade">
+            <p v-if="error" class="auth-error">{{ error }}</p>
+          </Transition>
+
+          <GcButton type="submit" variant="primary" size="lg" :loading="loading" class="auth-submit">
+            Sign in
+          </GcButton>
+        </form>
+
+        <div class="auth-footer">
+          <span>Don't have an account?</span>
+          <NuxtLink to="/signup">Create one</NuxtLink>
+        </div>
+      </GcCard>
+
+      <!-- Back to home -->
+      <NuxtLink to="/" class="auth-back">
+        ← Back to home
+      </NuxtLink>
     </div>
   </div>
 </template>
 
 <style scoped>
-.auth
-{
+.auth-page {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  background: #f1f5f9;
-}
-
-.wrap
-{
-  width: min(420px, 92vw);
-}
-
-.modern-form
-{
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --primary-light: rgba(59, 130, 246, 0.1);
-  --success: #10b981;
-  --text-main: #1e293b;
-  --text-secondary: #64748b;
-  --bg-input: #f8fafc;
-
-  position: relative;
-  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 24px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -2px rgba(0, 0, 0, 0.05),
-    inset 0 0 0 1px rgba(148, 163, 184, 0.1);
+  background: 
+    radial-gradient(ellipse at top left, var(--gc-accent-light) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, var(--gc-accent-light) 0%, transparent 50%),
+    var(--gc-bg);
 }
 
-.form-title
-{
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-main);
-  margin: 0 0 16px;
-  text-align: center;
-}
-
-.form-body
-{
-  display: grid;
-  gap: 12px;
-}
-
-.submit-button 
-{
-  position: relative;
+.auth-container {
   width: 100%;
-  height: 40px;
-  margin-top: 8px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 10px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gc-text);
+  text-decoration: none;
+}
+
+.auth-card {
+  padding: 32px;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.auth-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--gc-text);
+}
+
+.auth-header p {
   font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  overflow: hidden;
-  transition: all 0.2s ease;
+  color: var(--gc-text-muted);
+  margin: 0;
 }
 
-.submit-button:disabled
-{
-  opacity: 0.7;
-  cursor: not-allowed;
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.button-glow 
-{
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transform: translateX(-100%);
-  transition: transform 0.5s ease;
-}
-
-.submit-button:hover:not(:disabled) 
-{
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25), 0 2px 4px rgba(59, 130, 246, 0.15);
-}
-
-.submit-button:hover:not(:disabled) .button-glow 
-{ 
-  transform: translateX(100%); 
-}
-
-.submit-button:active:not(:disabled) 
-{ 
-  transform: translateY(0);
-  box-shadow: none; 
-}
-
-.err
-{
-  margin: 10px 0 0 0;
-  color: #ef4444;
+.auth-error {
+  margin: 0;
+  padding: 12px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--gc-radius-md);
+  color: var(--gc-error);
   font-size: 13px;
   text-align: center;
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.auth-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--gc-border);
+  font-size: 14px;
+  color: var(--gc-text-muted);
+}
+
+.auth-footer a {
+  color: var(--gc-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
+.auth-back {
+  display: flex;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--gc-text-muted);
+  text-decoration: none;
+}
+
+.auth-back:hover {
+  color: var(--gc-accent);
+}
+
+/* Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
