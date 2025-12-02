@@ -5,10 +5,22 @@
         <circle stroke-width="1.5" stroke="currentColor" r="4" cy="8" cx="12"></circle>
         <path stroke-linecap="round" stroke-width="1.5" stroke="currentColor" d="M5 20C5 17.2386 8.13401 15 12 15C15.866 15 19 17.2386 19 20"></path>
       </svg>
-      <input required="" placeholder="Username" class="form-input" type="text" />
+      <input
+        :value="modelValue"
+        @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+        required
+        placeholder="Username"
+        class="form-input"
+        type="text"
+      />
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+defineProps<{ modelValue?: string }>()
+defineEmits<{ (e: 'update:modelValue', value: string): void }>()
+</script>
 
 <style scoped>
   .input-group 

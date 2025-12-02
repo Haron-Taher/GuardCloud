@@ -30,7 +30,7 @@ const onSubmit = async () =>
 
   try
   {
-    await signup(username.value, password.value, email.value)
+    await signup(username.value, password.value)
     router.push('/login')
   }
   catch (e: any)

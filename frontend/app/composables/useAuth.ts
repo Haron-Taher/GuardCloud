@@ -41,11 +41,10 @@ export function useAuthState() {
     }
   }
 
-  async function signup(username: string, password: string, email: string) {
+  async function signup(username: string, password: string) {
     await api.post('/auth/signup', {
       username,
-      password,
-      email
+      password
     })
     // decide in the component whether to auto-login or redirect to /login
   }

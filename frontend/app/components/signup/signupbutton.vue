@@ -1,9 +1,16 @@
 <template>
-  <button class="submit-button" type="submit">
-    <span class="button-text">Create Account</span>
+  <button class="submit-button" type="submit" :disabled="disabled">
+    <span class="button-text">{{ text || 'Create Account' }}</span>
     <div class="button-glow"></div>
   </button>
 </template>
+
+<script setup lang="ts">
+defineProps<{
+  disabled?: boolean
+  text?: string
+}>()
+</script>
 
 <style scoped>
   .submit-button 
@@ -13,6 +20,12 @@
     font-size: 14px; font-weight: 500; cursor: pointer; overflow: hidden; transition: all 0.2s ease;
   }
 
+  .submit-button:disabled
+  {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
   .button-glow 
   {
     position: absolute; inset: 0;
@@ -20,18 +33,18 @@
     transform: translateX(-100%); transition: transform 0.5s ease;
   }
 
-  .submit-button:hover 
+  .submit-button:hover:not(:disabled) 
   {
     background: var(--primary-dark); transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25), 0 2px 4px rgba(59, 130, 246, 0.15);
   }
 
-  .submit-button:hover .button-glow 
+  .submit-button:hover:not(:disabled) .button-glow 
   { 
     transform: translateX(100%); 
   }
 
-  .submit-button:active 
+  .submit-button:active:not(:disabled) 
   { 
     transform: translateY(0); box-shadow: none; 
   }

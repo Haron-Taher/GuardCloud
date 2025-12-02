@@ -27,8 +27,7 @@ def Initialize_db():
         CREATE TABLE IF NOT EXISTS users(
             id INTEGER PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            email TEXT
+            password TEXT NOT NULL
         )
         """
     )
@@ -59,7 +58,7 @@ def user_exists(username):
     conn.close()
     return user is not None
 
-def signup_db(username, password_hash, email=None):
+def signup_db(username, password_hash):
     """Insert a new user if the username does not already exist."""
     if user_exists(username):
         print(f"Username {username} already exists!")
@@ -68,8 +67,8 @@ def signup_db(username, password_hash, email=None):
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO users (username, password, email) VALUES (?, ?, ?)",
-        (username, password_hash, email),
+        "INSERT INTO users (username, password) VALUES (?, ?)",
+        (username, password_hash),
     )
     conn.commit()
     conn.close()

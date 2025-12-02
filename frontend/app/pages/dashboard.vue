@@ -274,6 +274,7 @@ import ico_xls   from '~/assets/free-file-icons/48px/xls.png'
 import ico_xlsx  from '~/assets/free-file-icons/48px/xlsx.png'
 import ico_xml   from '~/assets/free-file-icons/48px/xml.png'
 import ico_yml   from '~/assets/free-file-icons/48px/yml.png'
+import ico_wav   from '~/assets/free-file-icons/48px/wav.png'
 import ico_zip   from '~/assets/free-file-icons/48px/zip.png'
 
 import ico_dir   from '~/assets/free-file-icons/48px/Gemini_Generated_Image_ivszpaivszpaivsz_48px.png'
