@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthState } from '~/composables/useAuth'
-import { GcButton, GcInput, GcCard } from '~/components/ui'
-import IconUser from '~/components/icons/IconUser.vue'
-import IconLock from '~/components/icons/IconLock.vue'
+import { useAuth } from '~/composables/useAuth'
 
 const router = useRouter()
 const route = useRoute()
-const { login, isLoggedIn } = useAuthState()
+const { login, authState } = useAuth()
 
 const username = ref('')
 const password = ref('')
@@ -25,7 +22,7 @@ onMounted(() => {
   }
   
   // Redirect if already logged in
-  if (isLoggedIn.value) {
+  if (authState.value.isAuthenticated) {
     router.push('/dashboard')
   }
 })
@@ -88,63 +85,66 @@ const handleKeydown = (e: KeyboardEvent) => {
     <div class="auth-container">
       <!-- Logo -->
       <NuxtLink to="/" class="auth-logo">
-        <img src="~/assets/logos/securecloud.png" width="40" height="40" alt="GuardCloud" />
+        <span class="logo-icon">☁️</span>
         <span>GuardCloud</span>
       </NuxtLink>
 
       <!-- Card -->
-      <GcCard variant="elevated" class="auth-card">
+      <div class="auth-card">
         <div class="auth-header">
           <h1>Welcome back</h1>
           <p>Sign in to your account to continue</p>
         </div>
 
         <!-- Session expired notice -->
-        <Transition name="fade">
-          <div v-if="sessionExpired" class="auth-notice auth-notice--warning">
-            <span>⚠️</span>
-            <span>Your session has expired. Please sign in again.</span>
-          </div>
-        </Transition>
+        <div v-if="sessionExpired" class="auth-notice auth-notice--warning">
+          <span>⚠️</span>
+          <span>Your session has expired. Please sign in again.</span>
+        </div>
 
         <form @submit.prevent="onSubmit" @keydown="handleKeydown" class="auth-form">
-          <GcInput
-            v-model="username"
-            label="Username"
-            placeholder="Enter your username"
-            :icon="IconUser"
-            required
-            autocomplete="username"
-            :disabled="loading"
-          />
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input
+              id="username"
+              v-model="username"
+              type="text"
+              placeholder="Enter your username"
+              required
+              autocomplete="username"
+              :disabled="loading"
+              class="form-input"
+            />
+          </div>
 
-          <GcInput
-            v-model="password"
-            type="password"
-            label="Password"
-            placeholder="Enter your password"
-            :icon="IconLock"
-            required
-            autocomplete="current-password"
-            :disabled="loading"
-          />
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input
+              id="password"
+              v-model="password"
+              type="password"
+              placeholder="Enter your password"
+              required
+              autocomplete="current-password"
+              :disabled="loading"
+              class="form-input"
+            />
+          </div>
 
-          <Transition name="fade">
-            <div v-if="error" class="auth-error">
-              <span>{{ error }}</span>
-            </div>
-          </Transition>
+          <div v-if="error" class="auth-error">
+            <span>{{ error }}</span>
+          </div>
 
-          <GcButton type="submit" variant="primary" size="lg" :loading="loading" class="auth-submit">
+          <button type="submit" :disabled="loading" class="btn btn-primary auth-submit">
             {{ loading ? 'Signing in...' : 'Sign in' }}
-          </GcButton>
+          </button>
         </form>
 
         <div class="auth-footer">
           <span>Don't have an account?</span>
           <NuxtLink to="/signup">Create one</NuxtLink>
         </div>
-      </GcCard>
+      </div>
 
       <!-- Back to home -->
       <NuxtLink to="/" class="auth-back">
@@ -161,10 +161,7 @@ const handleKeydown = (e: KeyboardEvent) => {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: 
-    radial-gradient(ellipse at top left, var(--gc-accent-light) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom right, var(--gc-accent-light) 0%, transparent 50%),
-    var(--gc-bg);
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
 }
 
 .auth-container {
@@ -182,12 +179,19 @@ const handleKeydown = (e: KeyboardEvent) => {
   gap: 12px;
   font-size: 22px;
   font-weight: 700;
-  color: var(--gc-text);
+  color: var(--gc-text-primary);
   text-decoration: none;
 }
 
+.logo-icon {
+  font-size: 32px;
+}
+
 .auth-card {
+  background: var(--gc-bg-primary);
+  border-radius: 16px;
   padding: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .auth-header {
@@ -199,12 +203,12 @@ const handleKeydown = (e: KeyboardEvent) => {
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: var(--gc-text);
+  color: var(--gc-text-primary);
 }
 
 .auth-header p {
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0;
 }
 
@@ -213,7 +217,7 @@ const handleKeydown = (e: KeyboardEvent) => {
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: var(--gc-radius-md);
+  border-radius: 8px;
   font-size: 13px;
   margin-bottom: 20px;
 }
@@ -230,6 +234,38 @@ const handleKeydown = (e: KeyboardEvent) => {
   gap: 20px;
 }
 
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gc-text-primary);
+}
+
+.form-input {
+  padding: 12px 14px;
+  border: 1px solid var(--gc-border);
+  border-radius: 8px;
+  background: var(--gc-bg-secondary);
+  color: var(--gc-text-primary);
+  font-size: 15px;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--gc-primary);
+}
+
+.form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .auth-error {
   display: flex;
   align-items: center;
@@ -237,9 +273,33 @@ const handleKeydown = (e: KeyboardEvent) => {
   padding: 12px 14px;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: var(--gc-radius-md);
+  border-radius: 8px;
   color: var(--gc-error);
   font-size: 13px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--gc-primary);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--gc-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .auth-submit {
@@ -256,11 +316,11 @@ const handleKeydown = (e: KeyboardEvent) => {
   padding-top: 24px;
   border-top: 1px solid var(--gc-border);
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
 }
 
 .auth-footer a {
-  color: var(--gc-accent);
+  color: var(--gc-primary);
   font-weight: 600;
   text-decoration: none;
 }
@@ -273,22 +333,11 @@ const handleKeydown = (e: KeyboardEvent) => {
   display: flex;
   justify-content: center;
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   text-decoration: none;
 }
 
 .auth-back:hover {
-  color: var(--gc-accent);
-}
-
-/* Transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+  color: var(--gc-primary);
 }
 </style>

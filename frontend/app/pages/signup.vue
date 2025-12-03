@@ -1,14 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthState } from '~/composables/useAuth'
-import { GcButton, GcInput, GcCard } from '~/components/ui'
-import IconUser from '~/components/icons/IconUser.vue'
-import IconMail from '~/components/icons/IconMail.vue'
-import IconLock from '~/components/icons/IconLock.vue'
+import { useAuth } from '~/composables/useAuth'
 
 const router = useRouter()
-const { signup, isLoggedIn } = useAuthState()
+const { signup, authState } = useAuth()
 
 const username = ref('')
 const email = ref('')
@@ -20,7 +16,7 @@ const success = ref(false)
 
 // Redirect if already logged in
 onMounted(() => {
-  if (isLoggedIn.value) {
+  if (authState.value.isAuthenticated) {
     router.push('/dashboard')
   }
 })
@@ -78,7 +74,6 @@ const validationErrors = computed(() => {
 const canSubmit = computed(() => {
   return (
     username.value.trim().length >= 3 &&
-    email.value.trim() &&
     password.value.length >= 8 &&
     password.value === confirmPassword.value &&
     validationErrors.value.length === 0
@@ -95,7 +90,7 @@ const onSubmit = async () => {
   loading.value = true
 
   try {
-    await signup(username.value, password.value, email.value)
+    await signup(username.value, email.value, password.value)
     success.value = true
     
     // Redirect to login after brief delay
@@ -126,12 +121,12 @@ const onSubmit = async () => {
     <div class="auth-container">
       <!-- Logo -->
       <NuxtLink to="/" class="auth-logo">
-        <img src="~/assets/logos/securecloud.png" width="40" height="40" alt="GuardCloud" />
+        <span class="logo-icon">☁️</span>
         <span>GuardCloud</span>
       </NuxtLink>
 
       <!-- Card -->
-      <GcCard variant="elevated" class="auth-card">
+      <div class="auth-card">
         <!-- Success state -->
         <div v-if="success" class="auth-success">
           <div class="success-icon">✓</div>
@@ -147,38 +142,47 @@ const onSubmit = async () => {
           </div>
 
           <form @submit.prevent="onSubmit" class="auth-form">
-            <GcInput
-              v-model="username"
-              label="Username"
-              placeholder="Choose a username"
-              :icon="IconUser"
-              required
-              autocomplete="username"
-              :disabled="loading"
-              :error="username && username.length < 3 ? 'At least 3 characters required' : ''"
-            />
+            <div class="form-group">
+              <label for="username">Username</label>
+              <input
+                id="username"
+                v-model="username"
+                type="text"
+                placeholder="Choose a username"
+                required
+                autocomplete="username"
+                :disabled="loading"
+                class="form-input"
+              />
+              <span v-if="username && username.length < 3" class="field-error">
+                At least 3 characters required
+              </span>
+            </div>
 
-            <GcInput
-              v-model="email"
-              type="email"
-              label="Email"
-              placeholder="you@example.com"
-              :icon="IconMail"
-              required
-              autocomplete="email"
-              :disabled="loading"
-            />
+            <div class="form-group">
+              <label for="email">Email (optional)</label>
+              <input
+                id="email"
+                v-model="email"
+                type="email"
+                placeholder="you@example.com"
+                autocomplete="email"
+                :disabled="loading"
+                class="form-input"
+              />
+            </div>
 
-            <div class="password-field">
-              <GcInput
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input
+                id="password"
                 v-model="password"
                 type="password"
-                label="Password"
                 placeholder="Create a strong password"
-                :icon="IconLock"
                 required
                 autocomplete="new-password"
                 :disabled="loading"
+                class="form-input"
               />
               
               <!-- Password strength indicator -->
@@ -198,34 +202,34 @@ const onSubmit = async () => {
               </div>
             </div>
 
-            <GcInput
-              v-model="confirmPassword"
-              type="password"
-              label="Confirm Password"
-              placeholder="Confirm your password"
-              :icon="IconLock"
-              required
-              autocomplete="new-password"
-              :disabled="loading"
-              :error="confirmPassword && password !== confirmPassword ? 'Passwords do not match' : ''"
-            />
+            <div class="form-group">
+              <label for="confirmPassword">Confirm Password</label>
+              <input
+                id="confirmPassword"
+                v-model="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                required
+                autocomplete="new-password"
+                :disabled="loading"
+                class="form-input"
+              />
+              <span v-if="confirmPassword && password !== confirmPassword" class="field-error">
+                Passwords do not match
+              </span>
+            </div>
 
-            <Transition name="fade">
-              <div v-if="error" class="auth-error">
-                <span>{{ error }}</span>
-              </div>
-            </Transition>
+            <div v-if="error" class="auth-error">
+              <span>{{ error }}</span>
+            </div>
 
-            <GcButton 
+            <button 
               type="submit" 
-              variant="primary" 
-              size="lg" 
-              :loading="loading" 
-              :disabled="!canSubmit"
-              class="auth-submit"
+              :disabled="loading || !canSubmit"
+              class="btn btn-primary auth-submit"
             >
               {{ loading ? 'Creating account...' : 'Create account' }}
-            </GcButton>
+            </button>
           </form>
 
           <div class="auth-footer">
@@ -233,7 +237,7 @@ const onSubmit = async () => {
             <NuxtLink to="/login">Sign in</NuxtLink>
           </div>
         </template>
-      </GcCard>
+      </div>
 
       <!-- Back to home -->
       <NuxtLink to="/" class="auth-back">
@@ -250,10 +254,7 @@ const onSubmit = async () => {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: 
-    radial-gradient(ellipse at top left, var(--gc-accent-light) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom right, var(--gc-accent-light) 0%, transparent 50%),
-    var(--gc-bg);
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
 }
 
 .auth-container {
@@ -271,12 +272,19 @@ const onSubmit = async () => {
   gap: 12px;
   font-size: 22px;
   font-weight: 700;
-  color: var(--gc-text);
+  color: var(--gc-text-primary);
   text-decoration: none;
 }
 
+.logo-icon {
+  font-size: 32px;
+}
+
 .auth-card {
+  background: var(--gc-bg-primary);
+  border-radius: 16px;
   padding: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .auth-header {
@@ -288,12 +296,12 @@ const onSubmit = async () => {
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: var(--gc-text);
+  color: var(--gc-text-primary);
 }
 
 .auth-header p {
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0;
 }
 
@@ -303,29 +311,61 @@ const onSubmit = async () => {
   gap: 20px;
 }
 
-.password-field {
+.form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gc-text-primary);
+}
+
+.form-input {
+  padding: 12px 14px;
+  border: 1px solid var(--gc-border);
+  border-radius: 8px;
+  background: var(--gc-bg-secondary);
+  color: var(--gc-text-primary);
+  font-size: 15px;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--gc-primary);
+}
+
+.form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.field-error {
+  font-size: 12px;
+  color: var(--gc-error);
 }
 
 .password-strength {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 4px;
 }
 
 .strength-bar {
   flex: 1;
   height: 4px;
   background: var(--gc-border);
-  border-radius: var(--gc-radius-full);
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .strength-fill {
   height: 100%;
-  border-radius: var(--gc-radius-full);
+  border-radius: 2px;
   transition: all 0.3s ease;
 }
 
@@ -342,9 +382,33 @@ const onSubmit = async () => {
   padding: 12px 14px;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: var(--gc-radius-md);
+  border-radius: 8px;
   color: var(--gc-error);
   font-size: 13px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--gc-primary);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--gc-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .auth-submit {
@@ -361,11 +425,11 @@ const onSubmit = async () => {
   padding-top: 24px;
   border-top: 1px solid var(--gc-border);
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
 }
 
 .auth-footer a {
-  color: var(--gc-accent);
+  color: var(--gc-primary);
   font-weight: 600;
   text-decoration: none;
 }
@@ -378,12 +442,12 @@ const onSubmit = async () => {
   display: flex;
   justify-content: center;
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   text-decoration: none;
 }
 
 .auth-back:hover {
-  color: var(--gc-accent);
+  color: var(--gc-primary);
 }
 
 /* Success state */
@@ -410,21 +474,11 @@ const onSubmit = async () => {
   font-size: 22px;
   font-weight: 700;
   margin: 0 0 8px;
+  color: var(--gc-text-primary);
 }
 
 .auth-success p {
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0;
-}
-
-/* Transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>
