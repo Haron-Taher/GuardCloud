@@ -1,36 +1,84 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthState } from '~/composables/useAuth'
 import { GcButton, GcInput, GcCard } from '~/components/ui'
 import IconUser from '~/components/icons/IconUser.vue'
 import IconLock from '~/components/icons/IconLock.vue'
 
 const router = useRouter()
-const { login, isLoggedIn, authState } = useAuthState()
+const route = useRoute()
+const { login, isLoggedIn } = useAuthState()
 
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
+const sessionExpired = ref(false)
+
+// Check for session expiration message
+onMounted(() => {
+  if (route.query.expired === 'true') {
+    sessionExpired.value = true
+    // Clean up URL
+    router.replace({ path: '/login', query: {} })
+  }
+  
+  // Redirect if already logged in
+  if (isLoggedIn.value) {
+    router.push('/dashboard')
+  }
+})
 
 const onSubmit = async () => {
+  // Prevent double submission
   if (loading.value) return
   
-  loading.value = true
+  // Clear previous errors
   error.value = ''
+  sessionExpired.value = false
+  
+  // Basic validation
+  if (!username.value.trim()) {
+    error.value = 'Please enter your username'
+    return
+  }
+  
+  if (!password.value) {
+    error.value = 'Please enter your password'
+    return
+  }
+
+  loading.value = true
 
   try {
     await login(username.value, password.value)
-    if (isLoggedIn.value && authState.token) {
-      router.push('/dashboard')
-    } else {
-      error.value = 'Invalid username or password'
-    }
+    
+    // Redirect to dashboard on success
+    const redirectTo = (route.query.redirect as string) || '/dashboard'
+    router.push(redirectTo)
   } catch (e: any) {
-    error.value = e?.response?.data?.detail || 'Login failed. Please try again.'
+    // Handle specific error cases
+    if (e?.response?.status === 401) {
+      error.value = 'Invalid username or password'
+    } else if (e?.response?.status === 429) {
+      error.value = 'Too many login attempts. Please try again later.'
+    } else if (e?.response?.status >= 500) {
+      error.value = 'Server error. Please try again later.'
+    } else if (!e?.response) {
+      error.value = 'Network error. Please check your connection.'
+    } else {
+      error.value = e?.response?.data?.detail || e?.message || 'Login failed. Please try again.'
+    }
   } finally {
     loading.value = false
+  }
+}
+
+// Handle Enter key in form
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Enter' && !loading.value) {
+    onSubmit()
   }
 }
 </script>
@@ -51,7 +99,15 @@ const onSubmit = async () => {
           <p>Sign in to your account to continue</p>
         </div>
 
-        <form @submit.prevent="onSubmit" class="auth-form">
+        <!-- Session expired notice -->
+        <Transition name="fade">
+          <div v-if="sessionExpired" class="auth-notice auth-notice--warning">
+            <span>⚠️</span>
+            <span>Your session has expired. Please sign in again.</span>
+          </div>
+        </Transition>
+
+        <form @submit.prevent="onSubmit" @keydown="handleKeydown" class="auth-form">
           <GcInput
             v-model="username"
             label="Username"
@@ -59,6 +115,7 @@ const onSubmit = async () => {
             :icon="IconUser"
             required
             autocomplete="username"
+            :disabled="loading"
           />
 
           <GcInput
@@ -69,14 +126,17 @@ const onSubmit = async () => {
             :icon="IconLock"
             required
             autocomplete="current-password"
+            :disabled="loading"
           />
 
           <Transition name="fade">
-            <p v-if="error" class="auth-error">{{ error }}</p>
+            <div v-if="error" class="auth-error">
+              <span>{{ error }}</span>
+            </div>
           </Transition>
 
           <GcButton type="submit" variant="primary" size="lg" :loading="loading" class="auth-submit">
-            Sign in
+            {{ loading ? 'Signing in...' : 'Sign in' }}
           </GcButton>
         </form>
 
@@ -132,7 +192,7 @@ const onSubmit = async () => {
 
 .auth-header {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .auth-header h1 {
@@ -148,6 +208,22 @@ const onSubmit = async () => {
   margin: 0;
 }
 
+.auth-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--gc-radius-md);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.auth-notice--warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #b45309;
+}
+
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -155,14 +231,15 @@ const onSubmit = async () => {
 }
 
 .auth-error {
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 12px 14px;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: var(--gc-radius-md);
   color: var(--gc-error);
   font-size: 13px;
-  text-align: center;
 }
 
 .auth-submit {

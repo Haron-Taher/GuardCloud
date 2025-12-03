@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthState } from '~/composables/useAuth'
-import { useFilesState } from '~/composables/useFiles'
+import { useFilesState, type FileItem as ApiFileItem } from '~/composables/useFiles'
 import { GcButton } from '~/components/ui'
 import DashboardTopBar from '~/components/dashboard/DashboardTopBar.vue'
 import DashboardSidebar from '~/components/dashboard/DashboardSidebar.vue'
 import DashboardFileGrid, { type FileItem } from '~/components/dashboard/DashboardFileGrid.vue'
 
 const router = useRouter()
-const { authState, logout } = useAuthState()
-const { files, loading, fetchFiles, upload, download } = useFilesState()
+const { authState, logout, isLoggedIn } = useAuthState()
+const { files, loading, error, fetchFiles, upload, download, deleteFile, clearError } = useFilesState()
 
 // State
 const section = ref<'drive' | 'shared' | 'recent' | 'starred' | 'trash'>('drive')
@@ -20,9 +20,48 @@ const selectedFile = ref<FileItem | null>(null)
 const dragActive = ref(false)
 const uploadProgress = ref(0)
 const isUploading = ref(false)
+const showLogoutConfirm = ref(false)
+const starredIds = ref<Set<string>>(new Set())
 
 // File input ref
 const fileInputRef = ref<HTMLInputElement | null>(null)
+
+// Redirect if not logged in
+onMounted(() => {
+  if (!isLoggedIn.value) {
+    router.push('/login')
+    return
+  }
+  
+  // Load files
+  fetchFiles()
+  
+  // Load starred files from localStorage
+  if (process.client) {
+    const stored = localStorage.getItem('gc_starred')
+    if (stored) {
+      try {
+        starredIds.value = new Set(JSON.parse(stored))
+      } catch {
+        // Ignore invalid JSON
+      }
+    }
+  }
+})
+
+// Watch for auth changes
+watch(isLoggedIn, (loggedIn) => {
+  if (!loggedIn) {
+    router.push('/login')
+  }
+})
+
+// Save starred files when changed
+watch(starredIds, (ids) => {
+  if (process.client) {
+    localStorage.setItem('gc_starred', JSON.stringify([...ids]))
+  }
+}, { deep: true })
 
 // Transform API files to our format
 const transformedFiles = computed<FileItem[]>(() => {
@@ -33,7 +72,7 @@ const transformedFiles = computed<FileItem[]>(() => {
     size: f.size,
     modified: f.created_at ? new Date(f.created_at).getTime() : Date.now(),
     owner: authState.username || 'You',
-    starred: false,
+    starred: starredIds.value.has(String(f.id)),
   }))
 })
 
@@ -42,17 +81,24 @@ const filteredFiles = computed<FileItem[]>(() => {
   let result = [...transformedFiles.value]
   
   // Filter by section
-  if (section.value === 'starred') {
-    result = result.filter(f => f.starred)
-  } else if (section.value === 'recent') {
-    result = result.sort((a, b) => b.modified - a.modified).slice(0, 10)
-  } else if (section.value === 'trash') {
-    result = []
+  switch (section.value) {
+    case 'starred':
+      result = result.filter(f => f.starred)
+      break
+    case 'recent':
+      result = result.sort((a, b) => b.modified - a.modified).slice(0, 20)
+      break
+    case 'trash':
+      result = [] // Trash is not implemented yet
+      break
+    case 'shared':
+      result = [] // Shared is not implemented yet
+      break
   }
   
   // Filter by search
   if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase()
+    const query = searchQuery.value.toLowerCase().trim()
     result = result.filter(f => f.name.toLowerCase().includes(query))
   }
   
@@ -81,6 +127,13 @@ const sectionTitle = computed(() => {
 // Handlers
 const handleSearch = (query: string) => {
   searchQuery.value = query
+  selectedFile.value = null
+}
+
+const handleNavigate = (newSection: string) => {
+  section.value = newSection as typeof section.value
+  selectedFile.value = null
+  searchQuery.value = ''
 }
 
 const handleUploadClick = () => {
@@ -93,7 +146,7 @@ const handleFileSelect = async (event: Event) => {
   if (!fileList?.length) return
   
   await uploadFiles(Array.from(fileList))
-  input.value = ''
+  input.value = '' // Reset input for re-upload
 }
 
 const uploadFiles = async (fileList: File[]) => {
@@ -101,28 +154,52 @@ const uploadFiles = async (fileList: File[]) => {
   
   isUploading.value = true
   uploadProgress.value = 0
+  clearError()
   
   try {
     const total = fileList.length
     let completed = 0
     
     for (const file of fileList) {
-      await upload(file)
-      completed++
-      uploadProgress.value = Math.round((completed / total) * 100)
+      const success = await upload(file, (percent) => {
+        // Calculate overall progress
+        const baseProgress = (completed / total) * 100
+        const fileProgress = (percent / total)
+        uploadProgress.value = Math.round(baseProgress + fileProgress)
+      })
+      
+      if (success) {
+        completed++
+      }
     }
     
-    await fetchFiles()
-  } catch (error) {
-    console.error('Upload failed:', error)
+    uploadProgress.value = 100
   } finally {
-    isUploading.value = false
-    uploadProgress.value = 0
+    // Keep progress bar visible briefly before hiding
+    setTimeout(() => {
+      isUploading.value = false
+      uploadProgress.value = 0
+    }, 500)
+  }
+}
+
+const handleDragOver = (event: DragEvent) => {
+  event.preventDefault()
+  dragActive.value = true
+}
+
+const handleDragLeave = (event: DragEvent) => {
+  event.preventDefault()
+  // Only deactivate if leaving the main container
+  if (!event.relatedTarget || !(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node)) {
+    dragActive.value = false
   }
 }
 
 const handleDrop = async (event: DragEvent) => {
+  event.preventDefault()
   dragActive.value = false
+  
   const fileList = event.dataTransfer?.files
   if (fileList?.length) {
     await uploadFiles(Array.from(fileList))
@@ -134,9 +211,18 @@ const handleNewFolder = () => {
   alert('Folder creation coming soon!')
 }
 
-const handleLogout = () => {
+const handleLogoutClick = () => {
+  showLogoutConfirm.value = true
+}
+
+const confirmLogout = () => {
+  showLogoutConfirm.value = false
   logout()
   router.push('/login')
+}
+
+const cancelLogout = () => {
+  showLogoutConfirm.value = false
 }
 
 const handleSelectFile = (file: FileItem) => {
@@ -144,7 +230,7 @@ const handleSelectFile = (file: FileItem) => {
 }
 
 const handleOpenFile = async (file: FileItem) => {
-  // Download file
+  // Find original file and download
   const originalFile = files.value.find(f => String(f.id) === String(file.id))
   if (originalFile) {
     await download(originalFile)
@@ -152,33 +238,69 @@ const handleOpenFile = async (file: FileItem) => {
 }
 
 const handleStarFile = (file: FileItem) => {
-  // Toggle star (local only for now)
-  const idx = transformedFiles.value.findIndex(f => f.id === file.id)
-  if (idx !== -1) {
-    file.starred = !file.starred
+  const id = String(file.id)
+  if (starredIds.value.has(id)) {
+    starredIds.value.delete(id)
+  } else {
+    starredIds.value.add(id)
+  }
+  // Trigger reactivity
+  starredIds.value = new Set(starredIds.value)
+}
+
+const handleDeleteFile = async (file: FileItem) => {
+  if (!confirm(`Delete "${file.name}"? This action cannot be undone.`)) return
+  
+  const originalFile = files.value.find(f => String(f.id) === String(file.id))
+  if (originalFile) {
+    await deleteFile(originalFile)
+    selectedFile.value = null
   }
 }
 
-// Initialize
+// Keyboard shortcuts
+const handleKeydown = (event: KeyboardEvent) => {
+  // Focus search on /
+  if (event.key === '/' && document.activeElement?.tagName !== 'INPUT') {
+    event.preventDefault()
+    const searchInput = document.querySelector('.topbar__search input') as HTMLInputElement
+    searchInput?.focus()
+  }
+  
+  // Delete selected file
+  if (event.key === 'Delete' && selectedFile.value) {
+    handleDeleteFile(selectedFile.value)
+  }
+  
+  // Escape to deselect
+  if (event.key === 'Escape') {
+    selectedFile.value = null
+    showLogoutConfirm.value = false
+  }
+}
+
 onMounted(() => {
-  fetchFiles()
+  if (process.client) {
+    document.addEventListener('keydown', handleKeydown)
+  }
 })
 </script>
 
 <template>
   <div 
     class="dashboard"
-    @dragover.prevent="dragActive = true"
-    @dragleave.prevent="dragActive = false"
-    @drop.prevent="handleDrop"
+    @dragover="handleDragOver"
+    @dragleave="handleDragLeave"
+    @drop="handleDrop"
   >
     <!-- Top Bar -->
     <DashboardTopBar
       :username="authState.username"
+      :email="authState.email"
       @search="handleSearch"
       @upload="handleUploadClick"
       @new-folder="handleNewFolder"
-      @logout="handleLogout"
+      @logout="handleLogoutClick"
     />
 
     <!-- Hidden file input -->
@@ -198,6 +320,14 @@ onMounted(() => {
       </div>
     </Transition>
 
+    <!-- Error banner -->
+    <Transition name="slide-down">
+      <div v-if="error" class="error-banner">
+        <span>{{ error }}</span>
+        <button @click="clearError" class="error-banner__close">×</button>
+      </div>
+    </Transition>
+
     <!-- Main layout -->
     <div class="dashboard__layout">
       <!-- Sidebar -->
@@ -205,7 +335,7 @@ onMounted(() => {
         :active-section="section"
         :storage-used="storageUsed"
         :storage-total="storageTotal"
-        @navigate="(s) => section = s"
+        @navigate="handleNavigate"
       />
 
       <!-- Content -->
@@ -256,6 +386,25 @@ onMounted(() => {
           @open="handleOpenFile"
           @star="handleStarFile"
         />
+
+        <!-- Empty state for sections -->
+        <div v-if="!loading && filteredFiles.length === 0 && section !== 'drive'" class="empty-section">
+          <template v-if="section === 'starred'">
+            <span class="empty-icon">⭐</span>
+            <h3>No starred files</h3>
+            <p>Star important files to find them quickly here.</p>
+          </template>
+          <template v-else-if="section === 'shared'">
+            <span class="empty-icon">👥</span>
+            <h3>Nothing shared yet</h3>
+            <p>Files shared with you will appear here.</p>
+          </template>
+          <template v-else-if="section === 'trash'">
+            <span class="empty-icon">🗑️</span>
+            <h3>Trash is empty</h3>
+            <p>Items you delete will appear here.</p>
+          </template>
+        </div>
       </main>
     </div>
 
@@ -266,6 +415,21 @@ onMounted(() => {
           <span class="drop-overlay__icon">📤</span>
           <h3>Drop files to upload</h3>
           <p>Files will be encrypted before upload</p>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Logout confirmation modal -->
+    <Transition name="fade">
+      <div v-if="showLogoutConfirm" class="modal-overlay" @click.self="cancelLogout">
+        <div class="modal">
+          <div class="modal__icon">👋</div>
+          <h3>Sign out?</h3>
+          <p>Are you sure you want to sign out of your account?</p>
+          <div class="modal__actions">
+            <GcButton variant="ghost" @click="cancelLogout">Cancel</GcButton>
+            <GcButton variant="danger" @click="confirmLogout">Sign out</GcButton>
+          </div>
         </div>
       </div>
     </Transition>
@@ -314,6 +478,38 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 600;
   color: var(--gc-accent);
+}
+
+/* Error banner */
+.error-banner {
+  position: fixed;
+  top: 61px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--gc-error);
+  color: #fff;
+  border-radius: var(--gc-radius-lg);
+  font-size: 14px;
+  box-shadow: var(--gc-shadow-lg);
+  z-index: 100;
+}
+
+.error-banner__close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.error-banner__close:hover {
+  opacity: 1;
 }
 
 /* Layout */
@@ -395,6 +591,34 @@ onMounted(() => {
   color: var(--gc-accent);
 }
 
+/* Empty section state */
+.empty-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 64px 24px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.empty-section p {
+  font-size: 14px;
+  color: var(--gc-text-muted);
+  margin: 0;
+}
+
 /* Drop overlay */
 .drop-overlay {
   position: fixed;
@@ -431,6 +655,51 @@ onMounted(() => {
   font-size: 14px;
   color: var(--gc-text-muted);
   margin: 0;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 24px;
+}
+
+.modal {
+  background: var(--gc-bg);
+  border: 1px solid var(--gc-border);
+  border-radius: var(--gc-radius-xl);
+  padding: 32px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.modal__icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.modal h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.modal p {
+  font-size: 14px;
+  color: var(--gc-text-muted);
+  margin: 0 0 24px;
+}
+
+.modal__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
 }
 
 /* Transitions */

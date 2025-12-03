@@ -28,9 +28,12 @@ const emit = defineEmits<{
   (e: 'select', file: FileItem): void
   (e: 'open', file: FileItem): void
   (e: 'star', file: FileItem): void
+  (e: 'delete', file: FileItem): void
 }>()
 
 const getFileIcon = (file: FileItem): string => {
+  if (!file.name) return '📄'
+  
   const ext = file.name.split('.').pop()?.toLowerCase() || ''
   
   const iconMap: Record<string, string> = {
@@ -45,14 +48,26 @@ const getFileIcon = (file: FileItem): string => {
     jpeg: '🖼️',
     png: '🖼️',
     gif: '🖼️',
+    svg: '🖼️',
+    webp: '🖼️',
     mp3: '🎵',
+    wav: '🎵',
     mp4: '🎬',
+    avi: '🎬',
+    mkv: '🎬',
     zip: '📦',
     rar: '📦',
+    '7z': '📦',
     txt: '📃',
     md: '📃',
+    json: '📋',
     js: '💻',
     ts: '💻',
+    jsx: '💻',
+    tsx: '💻',
+    vue: '💚',
+    html: '🌐',
+    css: '🎨',
     py: '🐍',
     folder: '📁',
   }
@@ -62,7 +77,8 @@ const getFileIcon = (file: FileItem): string => {
 }
 
 const formatSize = (bytes: number): string => {
-  if (!bytes) return '—'
+  if (!bytes || bytes === 0) return '—'
+  
   const kb = 1024
   const mb = kb * 1024
   const gb = mb * 1024
@@ -74,9 +90,18 @@ const formatSize = (bytes: number): string => {
 }
 
 const formatDate = (timestamp: number): string => {
+  if (!timestamp) return '—'
+  
   const date = new Date(timestamp)
+  
+  // Check for invalid date
+  if (isNaN(date.getTime())) return '—'
+  
   const now = new Date()
   const diff = now.getTime() - date.getTime()
+  
+  // Negative diff means future date (clock skew)
+  if (diff < 0) return 'Just now'
   
   const minutes = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
@@ -88,6 +113,12 @@ const formatDate = (timestamp: number): string => {
   if (days < 7) return `${days}d ago`
   
   return date.toLocaleDateString()
+}
+
+const handleRightClick = (event: MouseEvent, file: FileItem) => {
+  event.preventDefault()
+  emit('select', file)
+  // Could add context menu here in the future
 }
 </script>
 
@@ -103,7 +134,7 @@ const formatDate = (timestamp: number): string => {
     <div v-else-if="!files.length" class="file-area__empty">
       <span class="empty-icon">📂</span>
       <h3>No files here</h3>
-      <p>Upload files or create a new folder to get started.</p>
+      <p>Upload files or drag and drop to get started.</p>
     </div>
 
     <!-- Grid view -->
@@ -115,18 +146,20 @@ const formatDate = (timestamp: number): string => {
         :class="{ 'file-tile--selected': file.id === selectedId }"
         @click="$emit('select', file)"
         @dblclick="$emit('open', file)"
+        @contextmenu="handleRightClick($event, file)"
       >
         <div class="file-tile__thumb">
           <span class="file-tile__icon">{{ getFileIcon(file) }}</span>
         </div>
         <div class="file-tile__info">
-          <span class="file-tile__name">{{ file.name }}</span>
-          <span class="file-tile__meta">{{ formatDate(file.modified) }}</span>
+          <span class="file-tile__name" :title="file.name">{{ file.name }}</span>
+          <span class="file-tile__meta">{{ formatSize(file.size) }} • {{ formatDate(file.modified) }}</span>
         </div>
         <button 
           class="file-tile__star" 
           :class="{ 'file-tile__star--active': file.starred }"
           @click.stop="$emit('star', file)"
+          :title="file.starred ? 'Remove from starred' : 'Add to starred'"
         >
           {{ file.starred ? '★' : '☆' }}
         </button>
@@ -137,7 +170,7 @@ const formatDate = (timestamp: number): string => {
     <table v-else class="file-list">
       <thead>
         <tr>
-          <th>Name</th>
+          <th class="file-list__th-name">Name</th>
           <th>Owner</th>
           <th>Modified</th>
           <th>Size</th>
@@ -151,19 +184,21 @@ const formatDate = (timestamp: number): string => {
           :class="{ 'file-list__row--selected': file.id === selectedId }"
           @click="$emit('select', file)"
           @dblclick="$emit('open', file)"
+          @contextmenu="handleRightClick($event, file)"
         >
           <td class="file-list__name">
             <span class="file-list__icon">{{ getFileIcon(file) }}</span>
-            <span>{{ file.name }}</span>
+            <span :title="file.name">{{ file.name }}</span>
           </td>
           <td>{{ file.owner }}</td>
           <td>{{ formatDate(file.modified) }}</td>
           <td>{{ formatSize(file.size) }}</td>
-          <td>
+          <td class="file-list__actions">
             <button 
               class="file-list__star"
               :class="{ 'file-list__star--active': file.starred }"
               @click.stop="$emit('star', file)"
+              :title="file.starred ? 'Remove from starred' : 'Add to starred'"
             >
               {{ file.starred ? '★' : '☆' }}
             </button>
@@ -258,6 +293,12 @@ const formatDate = (timestamp: number): string => {
   box-shadow: var(--gc-shadow-md);
 }
 
+.file-tile:focus {
+  outline: none;
+  border-color: var(--gc-accent);
+  box-shadow: 0 0 0 2px var(--gc-accent-light);
+}
+
 .file-tile--selected {
   border-color: var(--gc-accent);
   box-shadow: 0 0 0 2px var(--gc-accent-light);
@@ -308,7 +349,14 @@ const formatDate = (timestamp: number): string => {
   font-size: 18px;
   cursor: pointer;
   color: var(--gc-text-muted);
-  transition: color 0.15s;
+  transition: all 0.15s;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.file-tile__star:hover {
+  background: var(--gc-border);
+  transform: scale(1.1);
 }
 
 .file-tile__star--active {
@@ -341,6 +389,10 @@ const formatDate = (timestamp: number): string => {
   background: var(--gc-bg);
 }
 
+.file-list__th-name {
+  width: 40%;
+}
+
 .file-list tbody tr {
   cursor: pointer;
   transition: background 0.1s;
@@ -348,6 +400,10 @@ const formatDate = (timestamp: number): string => {
 
 .file-list tbody tr:hover {
   background: color-mix(in srgb, var(--gc-accent-light) 50%, transparent);
+}
+
+.file-list tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .file-list__row--selected {
@@ -359,10 +415,23 @@ const formatDate = (timestamp: number): string => {
   align-items: center;
   gap: 12px;
   font-weight: 500;
+  min-width: 0;
+}
+
+.file-list__name span:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .file-list__icon {
   font-size: 20px;
+  flex-shrink: 0;
+}
+
+.file-list__actions {
+  width: 50px;
+  text-align: center;
 }
 
 .file-list__star {
@@ -371,9 +440,26 @@ const formatDate = (timestamp: number): string => {
   font-size: 16px;
   cursor: pointer;
   color: var(--gc-text-muted);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.file-list__star:hover {
+  background: var(--gc-border);
 }
 
 .file-list__star--active {
   color: #fbbf24;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .file-list th:nth-child(2),
+  .file-list td:nth-child(2),
+  .file-list th:nth-child(4),
+  .file-list td:nth-child(4) {
+    display: none;
+  }
 }
 </style>
