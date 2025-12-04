@@ -36,15 +36,18 @@ const handleSubmit = async () => {
     <header class="nav">
       <div class="container nav__inner">
         <NuxtLink to="/" class="brand">
-          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
-          </svg>
+          <img src="~/assets/logos/securecloud.png" alt="GuardCloud" class="brand-img" />
           <span>GuardCloud</span>
         </NuxtLink>
         <div class="nav__actions">
-          <button class="theme-btn" @click="toggleTheme">
-            <span v-if="isDark">☀️</span>
-            <span v-else>🌙</span>
+          <button class="theme-btn" @click="toggleTheme" :title="isDark ? 'Light mode' : 'Dark mode'">
+            <svg v-if="isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
           </button>
           <NuxtLink to="/login" class="btn btn-ghost">Sign in</NuxtLink>
           <NuxtLink to="/signup" class="btn btn-primary">Get started</NuxtLink>
@@ -123,7 +126,11 @@ const handleSubmit = async () => {
           </form>
 
           <div v-else class="success">
-            <span class="success__icon">✓</span>
+            <div class="success__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+            </div>
             <h3>Message sent!</h3>
             <p>Thanks for reaching out. We'll get back to you within 24 hours.</p>
             <button class="btn btn-ghost" @click="sent = false">Send another</button>
@@ -134,9 +141,12 @@ const handleSubmit = async () => {
         <div class="contact-info">
           <div class="info-card">
             <div class="info-card__header">
-              <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
-              </svg>
+              <div class="info-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <path d="M22 6l-10 7L2 6"/>
+                </svg>
+              </div>
               <div>
                 <h3>GuardCloud Support</h3>
                 <p>We're here to help</p>
@@ -164,6 +174,12 @@ const handleSubmit = async () => {
           </div>
 
           <div class="info-card">
+            <div class="info-card-doc">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+              </svg>
+            </div>
             <h4>Looking for documentation?</h4>
             <p>Check out our help center for guides, tutorials, and FAQs.</p>
             <button class="btn btn-ghost btn-sm">Visit Help Center</button>
@@ -247,12 +263,18 @@ const handleSubmit = async () => {
   border: 1px solid var(--gc-border);
   border-radius: 10px;
   cursor: pointer;
-  font-size: 18px;
   transition: all 0.2s;
+  color: var(--gc-text-secondary);
+}
+
+.theme-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .theme-btn:hover {
   background: var(--gc-bg-tertiary);
+  color: var(--gc-text-primary);
 }
 
 .spinner {
@@ -291,10 +313,10 @@ const handleSubmit = async () => {
   text-decoration: none;
 }
 
-.brand-icon {
-  width: 28px;
-  height: 28px;
-  color: var(--gc-primary);
+.brand-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .nav__actions {
@@ -343,9 +365,9 @@ const handleSubmit = async () => {
 .contact-form {
   background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 32px;
-  box-shadow: var(--gc-shadow-lg);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.1);
 }
 
 .contact-form h2 {
@@ -414,25 +436,29 @@ const handleSubmit = async () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  background: var(--gc-success);
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #fff;
   border-radius: 50%;
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.success__icon svg {
+  width: 36px;
+  height: 36px;
 }
 
 .success h3 {
-  font-size: 22px;
-  margin: 0 0 8px;
+  font-size: 24px;
+  margin: 0 0 10px;
   color: var(--gc-text-primary);
 }
 
 .success p {
   color: var(--gc-text-secondary);
-  margin: 0 0 20px;
+  margin: 0 0 24px;
+  font-size: 15px;
 }
 
 /* Info */
@@ -445,7 +471,7 @@ const handleSubmit = async () => {
 .info-card {
   background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 24px;
 }
 
@@ -456,10 +482,20 @@ const handleSubmit = async () => {
   margin-bottom: 20px;
 }
 
-.info-icon {
-  width: 32px;
-  height: 32px;
+.info-icon-wrap {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 12px;
   color: var(--gc-primary);
+}
+
+.info-icon-wrap svg {
+  width: 22px;
+  height: 22px;
 }
 
 .info-card__header h3 {
@@ -506,6 +542,23 @@ const handleSubmit = async () => {
   text-decoration: underline;
 }
 
+.info-card-doc {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gc-bg-secondary);
+  border-radius: 12px;
+  color: var(--gc-text-secondary);
+  margin-bottom: 16px;
+}
+
+.info-card-doc svg {
+  width: 24px;
+  height: 24px;
+}
+
 .info-card h4 {
   font-size: 16px;
   font-weight: 700;
@@ -517,5 +570,6 @@ const handleSubmit = async () => {
   font-size: 14px;
   color: var(--gc-text-secondary);
   margin: 0 0 16px;
+  line-height: 1.5;
 }
 </style>

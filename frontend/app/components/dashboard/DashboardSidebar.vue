@@ -3,8 +3,7 @@
     <!-- New Button -->
     <button class="new-button" @click="emit('newAction')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="12" y1="5" x2="12" y2="19"/>
-        <line x1="5" y1="12" x2="19" y2="12"/>
+        <path d="M12 5v14M5 12h14"/>
       </svg>
       <span>New</span>
     </button>
@@ -18,7 +17,9 @@
         :class="{ active: activeSection === item.id }"
         @click="emit('navigate', item.id)"
       >
-        <span class="nav-icon">{{ item.icon }}</span>
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path :d="item.iconPath" />
+        </svg>
         <span class="nav-label">{{ item.label }}</span>
       </button>
     </nav>
@@ -26,22 +27,24 @@
     <!-- Storage Usage -->
     <div class="storage-section">
       <div class="storage-header">
-        <svg class="storage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <svg class="storage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
         </svg>
         <span class="storage-label">Storage</span>
       </div>
       
-      <div class="storage-bar">
-        <div 
-          class="storage-fill" 
-          :style="{ width: `${storagePercentage}%` }"
-          :class="{ warning: storagePercentage > 80, critical: storagePercentage > 95 }"
-        ></div>
+      <div class="storage-bar-container">
+        <div class="storage-bar">
+          <div 
+            class="storage-fill" 
+            :style="{ width: `${storagePercentage}%` }"
+            :class="{ warning: storagePercentage > 80, critical: storagePercentage > 95 }"
+          ></div>
+        </div>
       </div>
       
       <div class="storage-text">
-        {{ formatSize(storageUsed) }} of {{ formatSize(storageLimit) }}
+        {{ formatSize(storageUsed) }} of {{ formatSize(storageLimit) }} used
       </div>
     </div>
   </aside>
@@ -63,9 +66,21 @@ const emit = defineEmits<{
 }>()
 
 const navItems = [
-  { id: 'drive', icon: '📁', label: 'My Drive' },
-  { id: 'starred', icon: '⭐', label: 'Starred' },
-  { id: 'trash', icon: '🗑️', label: 'Trash' },
+  { 
+    id: 'drive', 
+    label: 'My Drive',
+    iconPath: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10'
+  },
+  { 
+    id: 'starred', 
+    label: 'Starred',
+    iconPath: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'
+  },
+  { 
+    id: 'trash', 
+    label: 'Trash',
+    iconPath: 'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'
+  },
 ]
 
 const storagePercentage = computed(() => {
@@ -80,13 +95,13 @@ function formatSize(bytes: number) {
 
 <style scoped>
 .sidebar {
-  width: 220px;
+  width: 240px;
   background: var(--gc-bg-primary);
   border-right: 1px solid var(--gc-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  padding: 16px 12px;
+  padding: 20px 14px;
   height: calc(100vh - 64px);
   overflow-y: auto;
 }
@@ -97,16 +112,17 @@ function formatSize(bytes: number) {
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 18px;
   background: var(--gc-primary);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
 
 .new-button svg {
@@ -117,6 +133,7 @@ function formatSize(bytes: number) {
 .new-button:hover {
   background: var(--gc-primary-hover);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
 }
 
 /* Navigation */
@@ -132,10 +149,10 @@ function formatSize(bytes: number) {
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 11px 14px;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--gc-text-secondary);
   font-size: 14px;
   cursor: pointer;
@@ -144,20 +161,23 @@ function formatSize(bytes: number) {
 }
 
 .nav-item:hover {
-  background: var(--gc-bg-tertiary);
+  background: var(--gc-bg-secondary);
   color: var(--gc-text-primary);
 }
 
 .nav-item.active {
   background: rgba(99, 102, 241, 0.1);
   color: var(--gc-primary);
-  font-weight: 500;
+}
+
+.nav-item.active .nav-icon {
+  color: var(--gc-primary);
 }
 
 .nav-icon {
-  font-size: 18px;
-  width: 24px;
-  text-align: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 /* Storage Section */
@@ -165,28 +185,31 @@ function formatSize(bytes: number) {
   margin-top: auto;
   padding: 16px;
   background: var(--gc-bg-secondary);
-  border-radius: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--gc-border);
 }
 
 .storage-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .storage-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   color: var(--gc-text-secondary);
 }
 
 .storage-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--gc-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+}
+
+.storage-bar-container {
+  margin-bottom: 10px;
 }
 
 .storage-bar {
@@ -194,18 +217,17 @@ function formatSize(bytes: number) {
   background: var(--gc-bg-tertiary);
   border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 8px;
 }
 
 .storage-fill {
   height: 100%;
-  background: var(--gc-primary);
+  background: linear-gradient(90deg, var(--gc-primary) 0%, #8b5cf6 100%);
   border-radius: 3px;
   transition: width 0.3s ease;
 }
 
 .storage-fill.warning {
-  background: var(--gc-warning);
+  background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
 }
 
 .storage-fill.critical {

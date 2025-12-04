@@ -3,9 +3,7 @@
     <div class="share-container">
       <!-- Logo -->
       <NuxtLink to="/" class="logo">
-        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
-        </svg>
+        <img src="~/assets/logos/securecloud.png" alt="GuardCloud" class="logo-img" />
         <span class="logo-text">GuardCloud</span>
       </NuxtLink>
 
@@ -17,7 +15,12 @@
 
       <!-- Error State -->
       <div v-else-if="error" class="error-state">
-        <span class="error-icon">⚠️</span>
+        <div class="error-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
+        </div>
         <h2>{{ errorTitle }}</h2>
         <p>{{ error }}</p>
         <NuxtLink to="/" class="btn btn-primary">Go to homepage</NuxtLink>
@@ -25,13 +28,23 @@
 
       <!-- File Info -->
       <div v-else class="file-card">
-        <div class="file-icon">{{ fileIcon }}</div>
+        <div class="file-icon-wrap" :class="fileIconClass">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path :d="fileIconPath" />
+          </svg>
+        </div>
         <h2 class="file-name">{{ fileInfo?.filename }}</h2>
         <p class="file-size">{{ formatSize(fileInfo?.size || 0) }}</p>
 
         <!-- Password Input -->
         <div v-if="fileInfo?.has_password && !passwordVerified" class="password-section">
-          <p>This file is password protected</p>
+          <div class="password-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            This file is password protected
+          </div>
           <input 
             v-model="password"
             type="password"
@@ -49,12 +62,17 @@
           :disabled="downloading || (fileInfo?.has_password && !password)"
         >
           <span v-if="downloading" class="spinner-small"></span>
-          <span v-if="downloading">Downloading...</span>
-          <span v-else>⬇️ Download</span>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          {{ downloading ? 'Downloading...' : 'Download' }}
         </button>
 
         <p class="security-note">
-          🔒 Files are encrypted with AES-256
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Files are encrypted with AES-256
         </p>
       </div>
 
@@ -70,7 +88,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTheme } from '~/composables/useTheme'
-import { getFileEmoji, formatFileSize } from '~/utils/fileIcons'
+import { formatFileSize } from '~/utils/fileIcons'
 
 interface FileInfo {
   filename: string
@@ -91,8 +109,50 @@ const passwordError = ref('')
 const passwordVerified = ref(false)
 const downloading = ref(false)
 
-const fileIcon = computed(() => {
-  return getFileEmoji(fileInfo.value?.filename || '', false)
+const fileIconPath = computed(() => {
+  const filename = fileInfo.value?.filename || ''
+  const ext = filename.split('.').pop()?.toLowerCase() || ''
+  
+  const iconPaths: Record<string, string> = {
+    // Images
+    jpg: 'M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z M21 15l-5-5L5 21',
+    jpeg: 'M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z M21 15l-5-5L5 21',
+    png: 'M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z M21 15l-5-5L5 21',
+    gif: 'M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z M21 15l-5-5L5 21',
+    // Videos
+    mp4: 'M23 7l-7 5 7 5V7z M14 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z',
+    mov: 'M23 7l-7 5 7 5V7z M14 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z',
+    // Audio
+    mp3: 'M9 18V5l12-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+    wav: 'M9 18V5l12-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+    // Documents
+    pdf: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8',
+    doc: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8',
+    docx: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8',
+    txt: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8',
+    // Archives
+    zip: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M10 12h1 M10 15h1 M10 18h1',
+  }
+  
+  return iconPaths[ext] || 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6'
+})
+
+const fileIconClass = computed(() => {
+  const filename = fileInfo.value?.filename || ''
+  const ext = filename.split('.').pop()?.toLowerCase() || ''
+  
+  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+  const videoExts = ['mp4', 'webm', 'avi', 'mov']
+  const audioExts = ['mp3', 'wav', 'ogg', 'flac']
+  const docExts = ['pdf', 'doc', 'docx', 'txt']
+  const archiveExts = ['zip', 'rar', '7z']
+  
+  if (imageExts.includes(ext)) return 'icon-image'
+  if (videoExts.includes(ext)) return 'icon-video'
+  if (audioExts.includes(ext)) return 'icon-audio'
+  if (docExts.includes(ext)) return 'icon-document'
+  if (archiveExts.includes(ext)) return 'icon-archive'
+  return 'icon-default'
 })
 
 function formatSize(bytes: number) {
@@ -197,13 +257,13 @@ async function downloadFile() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gc-bg-secondary);
+  background: linear-gradient(135deg, var(--gc-bg-secondary) 0%, var(--gc-bg-primary) 100%);
   padding: 20px;
 }
 
 .share-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -212,19 +272,19 @@ async function downloadFile() {
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 32px;
   text-decoration: none;
 }
 
-.logo-icon {
-  width: 32px;
-  height: 32px;
-  color: var(--gc-primary);
+.logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
 .logo-text {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--gc-text-primary);
 }
@@ -233,13 +293,14 @@ async function downloadFile() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   color: var(--gc-text-secondary);
+  padding: 60px;
 }
 
 .spinner {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border: 3px solid var(--gc-border);
   border-top-color: var(--gc-primary);
   border-radius: 50%;
@@ -247,8 +308,8 @@ async function downloadFile() {
 }
 
 .spinner-small {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
@@ -263,38 +324,90 @@ async function downloadFile() {
   text-align: center;
   background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: var(--gc-shadow-lg);
+  border-radius: 20px;
+  padding: 48px 40px;
+  box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.15);
 }
 
 .error-icon {
-  font-size: 48px;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gc-error-soft);
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  color: var(--gc-error);
+}
+
+.error-icon svg {
+  width: 36px;
+  height: 36px;
 }
 
 .error-state h2 {
-  margin: 16px 0 8px;
+  margin: 0 0 10px;
+  font-size: 22px;
   color: var(--gc-text-primary);
 }
 
 .error-state p {
   color: var(--gc-text-secondary);
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  font-size: 15px;
 }
 
 .file-card {
   width: 100%;
   background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
-  border-radius: 16px;
-  padding: 40px;
+  border-radius: 20px;
+  padding: 48px 40px;
   text-align: center;
-  box-shadow: var(--gc-shadow-lg);
+  box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.15);
 }
 
-.file-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
+.file-icon-wrap {
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gc-bg-secondary);
+  border-radius: 20px;
+  margin: 0 auto 20px;
+  color: var(--gc-text-secondary);
+}
+
+.file-icon-wrap svg {
+  width: 40px;
+  height: 40px;
+}
+
+.file-icon-wrap.icon-image {
+  background: rgba(236, 72, 153, 0.1);
+  color: #ec4899;
+}
+
+.file-icon-wrap.icon-video {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+}
+
+.file-icon-wrap.icon-audio {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.file-icon-wrap.icon-document {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.file-icon-wrap.icon-archive {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
 }
 
 .file-name {
@@ -306,56 +419,73 @@ async function downloadFile() {
 }
 
 .file-size {
-  margin: 0 0 24px;
+  margin: 0 0 28px;
   color: var(--gc-text-secondary);
+  font-size: 15px;
 }
 
 .password-section {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
-.password-section p {
+.password-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   color: var(--gc-text-secondary);
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   font-size: 14px;
+}
+
+.password-label svg {
+  width: 18px;
+  height: 18px;
 }
 
 .password-input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border: 1px solid var(--gc-border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--gc-bg-secondary);
   color: var(--gc-text-primary);
   font-size: 15px;
   text-align: center;
+  transition: all 0.2s;
 }
 
 .password-input:focus {
   outline: none;
   border-color: var(--gc-primary);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: var(--gc-bg-primary);
 }
 
 .password-error {
   color: var(--gc-error);
   font-size: 14px;
-  margin: 8px 0 0;
+  margin: 10px 0 0;
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 24px;
+  gap: 10px;
+  padding: 14px 28px;
   border: none;
-  border-radius: 10px;
-  font-size: 15px;
+  border-radius: 12px;
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   text-decoration: none;
+}
+
+.btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .btn-primary {
@@ -365,6 +495,8 @@ async function downloadFile() {
 
 .btn-primary:hover:not(:disabled) {
   background: var(--gc-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
 }
 
 .btn-primary:disabled {
@@ -374,18 +506,26 @@ async function downloadFile() {
 
 .btn-large {
   width: 100%;
-  padding: 14px 24px;
-  font-size: 16px;
 }
 
 .security-note {
-  margin: 20px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 24px 0 0;
   font-size: 13px;
   color: var(--gc-text-secondary);
 }
 
+.security-note svg {
+  width: 16px;
+  height: 16px;
+  color: var(--gc-success);
+}
+
 .share-footer {
-  margin-top: 24px;
+  margin-top: 28px;
   text-align: center;
 }
 
@@ -398,6 +538,7 @@ async function downloadFile() {
 .share-footer a {
   color: var(--gc-primary);
   text-decoration: none;
+  font-weight: 500;
 }
 
 .share-footer a:hover {

@@ -15,9 +15,7 @@ onMounted(() => {
     <header class="nav">
       <div class="container nav__inner">
         <NuxtLink to="/" class="brand">
-          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
-          </svg>
+          <img src="~/assets/logos/securecloud.png" alt="GuardCloud" class="brand-img" />
           <span>GuardCloud</span>
         </NuxtLink>
 
@@ -30,8 +28,13 @@ onMounted(() => {
 
         <div class="nav__actions">
           <button class="theme-btn" @click="toggleTheme" :title="isDark ? 'Light mode' : 'Dark mode'">
-            <span v-if="isDark">☀️</span>
-            <span v-else>🌙</span>
+            <svg v-if="isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
           </button>
           <NuxtLink to="/login" class="btn btn-ghost">Sign in</NuxtLink>
           <NuxtLink to="/signup" class="btn btn-primary">Get started</NuxtLink>
@@ -43,7 +46,13 @@ onMounted(() => {
     <section class="hero">
       <div class="container hero__inner">
         <div class="hero__content">
-          <div class="hero__badge">🔒 Zero-knowledge encryption</div>
+          <div class="hero__badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Zero-knowledge encryption
+          </div>
           <h1>Secure cloud storage for teams who care about privacy</h1>
           <p>GuardCloud encrypts your files before they leave your device. Share and collaborate with end-to-end encryption that even we can't read.</p>
           
@@ -76,9 +85,7 @@ onMounted(() => {
               <span class="dot green"></span>
             </div>
             <div class="hero__preview">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
-              </svg>
+              <img src="~/assets/logos/securecloud.png" alt="GuardCloud" class="hero__logo" />
             </div>
           </div>
         </div>
@@ -95,37 +102,66 @@ onMounted(() => {
 
         <div class="features__grid">
           <div class="feature-card">
-            <div class="feature-icon">🔐</div>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
             <h3>Client-side encryption</h3>
             <p>Files are encrypted on your device with per-file keys before upload. We never see your data.</p>
           </div>
 
           <div class="feature-card">
-            <div class="feature-icon">🔗</div>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+            </div>
             <h3>Secure sharing</h3>
             <p>Share files with end-to-end encrypted links. Set expiry dates and passwords for extra protection.</p>
           </div>
 
           <div class="feature-card">
-            <div class="feature-icon">🔄</div>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M23 4v6h-6M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+            </div>
             <h3>Smart sync</h3>
             <p>Block-level sync conserves bandwidth. Work offline with encrypted local cache.</p>
           </div>
 
           <div class="feature-card">
-            <div class="feature-icon">📱</div>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                <path d="M12 18h.01"/>
+              </svg>
+            </div>
             <h3>Cross-platform</h3>
             <p>Native apps for Windows, Mac, iOS, and Android. Access your files anywhere.</p>
           </div>
 
           <div class="feature-card">
-            <div class="feature-icon">🕐</div>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
             <h3>Version history</h3>
             <p>Recover previous versions of any file. Point-in-time restore protects against ransomware.</p>
           </div>
 
           <div class="feature-card">
-            <div class="feature-icon">🔑</div>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+              </svg>
+            </div>
             <h3>Bring your own keys</h3>
             <p>Integrate with your organization's KMS/HSM. Full control over your encryption keys.</p>
           </div>
@@ -142,19 +178,35 @@ onMounted(() => {
           
           <ul class="security__list">
             <li>
-              <span class="check">✓</span>
+              <span class="check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </span>
               Client-side encryption by default (AES-256-GCM)
             </li>
             <li>
-              <span class="check">✓</span>
+              <span class="check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </span>
               Key wrapping for recipients (RSA-4096 / ECDH)
             </li>
             <li>
-              <span class="check">✓</span>
+              <span class="check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </span>
               SSO/SAML, SCIM, DLP & retention policies
             </li>
             <li>
-              <span class="check">✓</span>
+              <span class="check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </span>
               SOC 2 Type II & GDPR compliant
             </li>
           </ul>
@@ -164,7 +216,12 @@ onMounted(() => {
 
         <div class="security__visual">
           <div class="security__badge">
-            <div class="lock-icon">🛡️</div>
+            <div class="shield-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+            </div>
             <div class="security__badge-text">
               <strong>Zero Knowledge</strong>
               <span>Your keys, your data</span>
@@ -291,9 +348,7 @@ onMounted(() => {
     <footer class="footer">
       <div class="container footer__inner">
         <div class="footer__brand">
-          <svg class="footer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
-          </svg>
+          <img src="~/assets/logos/securecloud.png" alt="GuardCloud" class="footer-img" />
           <span>GuardCloud</span>
         </div>
         <nav class="footer__links">
@@ -345,6 +400,7 @@ onMounted(() => {
 
 .btn-primary:hover {
   background: var(--gc-primary-hover);
+  transform: translateY(-1px);
 }
 
 .btn-ghost {
@@ -391,12 +447,18 @@ onMounted(() => {
   border: 1px solid var(--gc-border);
   border-radius: 10px;
   cursor: pointer;
-  font-size: 18px;
   transition: all 0.2s;
+  color: var(--gc-text-secondary);
+}
+
+.theme-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .theme-btn:hover {
   background: var(--gc-bg-tertiary);
+  color: var(--gc-text-primary);
 }
 
 /* Navigation */
@@ -406,6 +468,7 @@ onMounted(() => {
   z-index: 100;
   background: var(--gc-bg-primary);
   border-bottom: 1px solid var(--gc-border);
+  backdrop-filter: blur(10px);
 }
 
 .nav__inner {
@@ -426,10 +489,10 @@ onMounted(() => {
   text-decoration: none;
 }
 
-.brand-icon {
-  width: 28px;
-  height: 28px;
-  color: var(--gc-primary);
+.brand-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .nav__links {
@@ -479,14 +542,21 @@ onMounted(() => {
 }
 
 .hero__badge {
-  display: inline-block;
-  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
   background: rgba(99, 102, 241, 0.1);
   color: var(--gc-primary);
-  border-radius: 20px;
+  border-radius: 24px;
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.hero__badge svg {
+  width: 16px;
+  height: 16px;
 }
 
 .hero__content h1 {
@@ -542,9 +612,9 @@ onMounted(() => {
 .hero__card {
   background: var(--gc-bg-secondary);
   border: 1px solid var(--gc-border);
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: var(--gc-shadow-lg);
+  box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.15);
   max-width: 500px;
   width: 100%;
 }
@@ -552,8 +622,9 @@ onMounted(() => {
 .hero__card-header {
   display: flex;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 14px 18px;
   background: var(--gc-bg-tertiary);
+  border-bottom: 1px solid var(--gc-border);
 }
 
 .dot {
@@ -570,15 +641,16 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 280px;
+  height: 300px;
   padding: 32px;
+  background: linear-gradient(135deg, var(--gc-bg-primary) 0%, var(--gc-bg-secondary) 100%);
 }
 
-.hero__preview svg {
-  width: 120px;
-  height: 120px;
-  color: var(--gc-primary);
-  opacity: 0.5;
+.hero__logo {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 40px rgba(99, 102, 241, 0.3));
 }
 
 /* Section header */
@@ -616,25 +688,38 @@ onMounted(() => {
 .feature-card {
   background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 28px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
 }
 
 .feature-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--gc-shadow-lg);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.12);
+  border-color: var(--gc-primary);
 }
 
 .feature-icon {
-  font-size: 32px;
-  margin-bottom: 16px;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 14px;
+  margin-bottom: 18px;
+  color: var(--gc-primary);
+}
+
+.feature-icon svg {
+  width: 26px;
+  height: 26px;
 }
 
 .feature-card h3 {
   font-size: 18px;
   font-weight: 700;
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   color: var(--gc-text-primary);
 }
 
@@ -682,13 +767,13 @@ onMounted(() => {
   padding: 0;
   margin: 0 0 28px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .security__list li {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   font-size: 15px;
   color: var(--gc-text-primary);
 }
@@ -697,13 +782,17 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   background: rgba(99, 102, 241, 0.1);
   color: var(--gc-primary);
   border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.check svg {
+  width: 14px;
+  height: 14px;
 }
 
 .security__visual {
@@ -714,21 +803,33 @@ onMounted(() => {
 .security__badge {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   background: var(--gc-bg-secondary);
   border: 1px solid var(--gc-border);
-  border-radius: 16px;
-  padding: 24px 32px;
-  box-shadow: var(--gc-shadow-lg);
+  border-radius: 20px;
+  padding: 28px 36px;
+  box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.12);
 }
 
-.lock-icon {
-  font-size: 48px;
+.shield-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 16px;
+  color: var(--gc-primary);
+}
+
+.shield-icon svg {
+  width: 32px;
+  height: 32px;
 }
 
 .security__badge-text strong {
   display: block;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--gc-text-primary);
 }
@@ -755,16 +856,22 @@ onMounted(() => {
 .price-card {
   background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 32px;
   position: relative;
   display: flex;
   flex-direction: column;
+  transition: all 0.2s;
+}
+
+.price-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.12);
 }
 
 .price-card--featured {
   border-color: var(--gc-primary);
-  box-shadow: 0 0 0 1px var(--gc-primary);
+  box-shadow: 0 0 0 1px var(--gc-primary), 0 20px 50px -15px rgba(99, 102, 241, 0.25);
 }
 
 .price-card__badge {
@@ -774,7 +881,7 @@ onMounted(() => {
   transform: translateX(-50%);
   background: var(--gc-primary);
   color: #fff;
-  padding: 4px 16px;
+  padding: 6px 18px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
@@ -785,7 +892,7 @@ onMounted(() => {
 }
 
 .price-card__header h3 {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   margin: 0 0 4px;
   color: var(--gc-text-primary);
@@ -802,7 +909,7 @@ onMounted(() => {
 }
 
 .price-card__price strong {
-  font-size: 48px;
+  font-size: 52px;
   font-weight: 800;
   color: var(--gc-text-primary);
 }
@@ -823,16 +930,31 @@ onMounted(() => {
 
 .price-card__features li {
   font-size: 15px;
-  padding-left: 24px;
+  padding-left: 28px;
   position: relative;
   color: var(--gc-text-primary);
 }
 
 .price-card__features li::before {
-  content: '✓';
+  content: '';
   position: absolute;
   left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 50%;
+}
+
+.price-card__features li::after {
+  content: '✓';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--gc-primary);
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -856,8 +978,13 @@ onMounted(() => {
 .faq-item {
   background: var(--gc-bg-secondary);
   border: 1px solid var(--gc-border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 20px 24px;
+  transition: all 0.2s;
+}
+
+.faq-item:hover {
+  border-color: var(--gc-primary);
 }
 
 .faq-item summary {
@@ -868,16 +995,19 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   color: var(--gc-text-primary);
+  font-size: 16px;
 }
 
 .faq-item summary::after {
   content: '+';
-  font-size: 20px;
+  font-size: 22px;
   color: var(--gc-text-secondary);
+  transition: transform 0.2s;
 }
 
 .faq-item[open] summary::after {
   content: '−';
+  color: var(--gc-primary);
 }
 
 .faq-item p {
@@ -890,7 +1020,7 @@ onMounted(() => {
 /* CTA */
 .cta {
   padding: clamp(64px, 10vw, 100px) 0;
-  background: var(--gc-primary);
+  background: linear-gradient(135deg, var(--gc-primary) 0%, #8b5cf6 100%);
   color: #fff;
 }
 
@@ -943,15 +1073,15 @@ onMounted(() => {
 .footer__brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: 700;
   color: var(--gc-text-primary);
 }
 
-.footer-icon {
-  width: 24px;
-  height: 24px;
-  color: var(--gc-primary);
+.footer-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .footer__links {
@@ -965,6 +1095,7 @@ onMounted(() => {
   color: var(--gc-text-secondary);
   text-decoration: none;
   font-size: 14px;
+  transition: color 0.15s;
 }
 
 .footer__links a:hover {

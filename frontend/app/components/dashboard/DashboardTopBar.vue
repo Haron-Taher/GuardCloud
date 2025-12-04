@@ -3,9 +3,7 @@
     <!-- Logo -->
     <div class="topbar-left">
       <NuxtLink to="/dashboard" class="logo">
-        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
-        </svg>
+        <img src="~/assets/logos/securecloud.png" alt="GuardCloud" class="logo-img" />
         <span class="logo-text">GuardCloud</span>
       </NuxtLink>
     </div>
@@ -13,7 +11,7 @@
     <!-- Search -->
     <div class="topbar-center">
       <div class="search-container">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="11" cy="11" r="8"/>
           <path d="M21 21l-4.35-4.35"/>
         </svg>
@@ -25,8 +23,12 @@
           placeholder="Search files..."
           class="search-input"
         />
-        <span v-if="searchQuery" class="search-clear" @click="$emit('update:searchQuery', '')">×</span>
-        <span class="search-shortcut">/</span>
+        <span v-if="searchQuery" class="search-clear" @click="$emit('update:searchQuery', '')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </span>
+        <kbd class="search-shortcut">/</kbd>
       </div>
     </div>
 
@@ -34,29 +36,39 @@
     <div class="topbar-right">
       <!-- Theme Toggle -->
       <button class="icon-btn" @click="toggleTheme" :title="isDark ? 'Light mode' : 'Dark mode'">
-        <span v-if="isDark">☀️</span>
-        <span v-else>🌙</span>
+        <svg v-if="isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
       </button>
 
       <!-- New Menu -->
       <div class="dropdown" ref="newDropdown">
         <button class="action-btn" @click="toggleNewMenu">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
+            <path d="M12 5v14M5 12h14"/>
           </svg>
           <span class="btn-text">New</span>
         </button>
-        <div v-if="showNewMenu" class="dropdown-menu">
-          <button class="dropdown-item" @click="handleNewAction('folder')">
-            <span class="dropdown-icon">📁</span>
-            New folder
-          </button>
-          <button class="dropdown-item" @click="handleNewAction('upload')">
-            <span class="dropdown-icon">⬆️</span>
-            Upload files
-          </button>
-        </div>
+        <Transition name="dropdown">
+          <div v-if="showNewMenu" class="dropdown-menu">
+            <button class="dropdown-item" @click="handleNewAction('folder')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              New folder
+            </button>
+            <button class="dropdown-item" @click="handleNewAction('upload')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              Upload files
+            </button>
+          </div>
+        </Transition>
       </div>
 
       <!-- User Menu -->
@@ -64,26 +76,38 @@
         <button class="user-btn" @click="toggleUserMenu">
           <span class="user-avatar">{{ userInitial }}</span>
         </button>
-        <div v-if="showUserMenu" class="dropdown-menu dropdown-right">
-          <div class="dropdown-header">
-            <span class="user-name">{{ user.username }}</span>
-            <span class="user-email">{{ user.email || 'No email set' }}</span>
+        <Transition name="dropdown">
+          <div v-if="showUserMenu" class="dropdown-menu dropdown-right">
+            <div class="dropdown-header">
+              <div class="dropdown-avatar">{{ userInitial }}</div>
+              <div class="dropdown-user-info">
+                <span class="user-name">{{ user.username }}</span>
+                <span class="user-email">{{ user.email || 'No email set' }}</span>
+              </div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" @click="handleUserAction('settings')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+              Settings
+            </button>
+            <button class="dropdown-item" @click="handleUserAction('activity')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+              Activity
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item text-danger" @click="handleUserAction('logout')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+              </svg>
+              Sign out
+            </button>
           </div>
-          <div class="dropdown-divider"></div>
-          <button class="dropdown-item" @click="handleUserAction('settings')">
-            <span class="dropdown-icon">⚙️</span>
-            Settings
-          </button>
-          <button class="dropdown-item" @click="handleUserAction('activity')">
-            <span class="dropdown-icon">📋</span>
-            Activity
-          </button>
-          <div class="dropdown-divider"></div>
-          <button class="dropdown-item text-danger" @click="handleUserAction('logout')">
-            <span class="dropdown-icon">🚪</span>
-            Sign out
-          </button>
-        </div>
+        </Transition>
       </div>
     </div>
   </header>
@@ -122,6 +146,13 @@ const userInitial = computed(() => {
 
 onMounted(() => {
   initTheme()
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleKeyDown)
 })
 
 function toggleNewMenu() {
@@ -186,16 +217,6 @@ function handleKeyDown(e: KeyboardEvent) {
     searchInput.value?.blur()
   }
 }
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-  document.addEventListener('keydown', handleKeyDown)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-  document.removeEventListener('keydown', handleKeyDown)
-})
 </script>
 
 <style scoped>
@@ -204,7 +225,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   height: 64px;
-  padding: 0 20px;
+  padding: 0 24px;
   background: var(--gc-bg-primary);
   border-bottom: 1px solid var(--gc-border);
   position: sticky;
@@ -224,14 +245,14 @@ onUnmounted(() => {
   text-decoration: none;
 }
 
-.logo-icon {
-  width: 28px;
-  height: 28px;
-  color: var(--gc-primary);
+.logo-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .logo-text {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--gc-text-primary);
 }
@@ -239,8 +260,8 @@ onUnmounted(() => {
 /* Search */
 .topbar-center {
   flex: 1;
-  max-width: 560px;
-  padding: 0 24px;
+  max-width: 520px;
+  padding: 0 32px;
 }
 
 .search-container {
@@ -262,7 +283,7 @@ onUnmounted(() => {
   width: 100%;
   padding: 10px 80px 10px 42px;
   border: 1px solid var(--gc-border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--gc-bg-secondary);
   color: var(--gc-text-primary);
   font-size: 14px;
@@ -282,33 +303,45 @@ onUnmounted(() => {
 
 .search-clear {
   position: absolute;
-  right: 44px;
-  font-size: 18px;
+  right: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   color: var(--gc-text-secondary);
   cursor: pointer;
-  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s;
 }
 
 .search-clear:hover {
   color: var(--gc-text-primary);
+  background: var(--gc-bg-tertiary);
+}
+
+.search-clear svg {
+  width: 14px;
+  height: 14px;
 }
 
 .search-shortcut {
   position: absolute;
   right: 14px;
-  padding: 2px 8px;
+  padding: 3px 8px;
   background: var(--gc-bg-tertiary);
-  border-radius: 4px;
-  font-size: 12px;
+  border: 1px solid var(--gc-border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: inherit;
   color: var(--gc-text-secondary);
-  font-family: monospace;
 }
 
 /* Actions */
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .icon-btn {
@@ -321,20 +354,26 @@ onUnmounted(() => {
   border: 1px solid var(--gc-border);
   border-radius: 10px;
   cursor: pointer;
-  font-size: 18px;
   transition: all 0.2s;
+  color: var(--gc-text-secondary);
+}
+
+.icon-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .icon-btn:hover {
   background: var(--gc-bg-tertiary);
   border-color: var(--gc-primary);
+  color: var(--gc-text-primary);
 }
 
 .action-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 10px 18px;
   background: var(--gc-primary);
   color: white;
   border: none;
@@ -352,13 +391,14 @@ onUnmounted(() => {
 
 .action-btn:hover {
   background: var(--gc-primary-hover);
+  transform: translateY(-1px);
 }
 
 .user-btn {
   width: 40px;
   height: 40px;
   padding: 0;
-  background: var(--gc-primary);
+  background: linear-gradient(135deg, var(--gc-primary) 0%, #8b5cf6 100%);
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -367,6 +407,7 @@ onUnmounted(() => {
 
 .user-btn:hover {
   transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .user-avatar {
@@ -384,14 +425,13 @@ onUnmounted(() => {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  min-width: 200px;
+  min-width: 220px;
   background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
-  border-radius: 12px;
-  box-shadow: var(--gc-shadow-lg);
-  padding: 6px;
+  border-radius: 14px;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2);
+  padding: 8px;
   z-index: 200;
-  animation: dropdownFadeIn 0.15s ease-out;
 }
 
 .dropdown-right {
@@ -399,33 +439,56 @@ onUnmounted(() => {
   right: 0;
 }
 
-@keyframes dropdownFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Dropdown animation */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
 }
 
 .dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 12px;
 }
 
+.dropdown-avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--gc-primary) 0%, #8b5cf6 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+.dropdown-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .user-name {
-  display: block;
   font-weight: 600;
   color: var(--gc-text-primary);
   font-size: 14px;
 }
 
 .user-email {
-  display: block;
   font-size: 12px;
   color: var(--gc-text-secondary);
-  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dropdown-divider {
@@ -437,7 +500,7 @@ onUnmounted(() => {
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
   padding: 10px 12px;
   background: none;
@@ -450,11 +513,25 @@ onUnmounted(() => {
   transition: background-color 0.15s;
 }
 
+.dropdown-item svg {
+  width: 18px;
+  height: 18px;
+  color: var(--gc-text-secondary);
+}
+
 .dropdown-item:hover {
   background: var(--gc-bg-tertiary);
 }
 
+.dropdown-item:hover svg {
+  color: var(--gc-text-primary);
+}
+
 .dropdown-item.text-danger {
+  color: var(--gc-error);
+}
+
+.dropdown-item.text-danger svg {
   color: var(--gc-error);
 }
 
@@ -462,16 +539,10 @@ onUnmounted(() => {
   background: rgba(239, 68, 68, 0.1);
 }
 
-.dropdown-icon {
-  font-size: 16px;
-  width: 20px;
-  text-align: center;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .topbar {
-    padding: 0 12px;
+    padding: 0 16px;
   }
   
   .logo-text {
@@ -479,7 +550,7 @@ onUnmounted(() => {
   }
   
   .topbar-center {
-    padding: 0 12px;
+    padding: 0 16px;
   }
   
   .search-shortcut {
