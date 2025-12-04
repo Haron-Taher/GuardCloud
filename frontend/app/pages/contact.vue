@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { GcButton, GcInput, GcCard } from '~/components/ui'
+import { ref, reactive, onMounted } from 'vue'
+import { useTheme } from '~/composables/useTheme'
+
+const { isDark, toggleTheme, init: initTheme } = useTheme()
 
 const form = reactive({
   name: '',
@@ -11,6 +13,10 @@ const form = reactive({
 
 const sending = ref(false)
 const sent = ref(false)
+
+onMounted(() => {
+  initTheme()
+})
 
 const handleSubmit = async () => {
   if (sending.value) return
@@ -30,12 +36,18 @@ const handleSubmit = async () => {
     <header class="nav">
       <div class="container nav__inner">
         <NuxtLink to="/" class="brand">
-          <img src="~/assets/logos/securecloud.png" width="28" height="28" alt="GuardCloud" />
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
+          </svg>
           <span>GuardCloud</span>
         </NuxtLink>
         <div class="nav__actions">
-          <GcButton to="/login" variant="ghost">Sign in</GcButton>
-          <GcButton to="/signup" variant="primary">Get started</GcButton>
+          <button class="theme-btn" @click="toggleTheme">
+            <span v-if="isDark">☀️</span>
+            <span v-else>🌙</span>
+          </button>
+          <NuxtLink to="/login" class="btn btn-ghost">Sign in</NuxtLink>
+          <NuxtLink to="/signup" class="btn btn-primary">Get started</NuxtLink>
         </div>
       </div>
     </header>
@@ -52,60 +64,79 @@ const handleSubmit = async () => {
     <section class="content">
       <div class="container content__grid">
         <!-- Form -->
-        <GcCard variant="elevated" class="contact-form">
+        <div class="contact-form">
           <h2>Send us a message</h2>
           
           <form v-if="!sent" @submit.prevent="handleSubmit" class="form">
-            <GcInput
-              v-model="form.name"
-              label="Name"
-              placeholder="Your name"
-              required
-            />
-            
-            <GcInput
-              v-model="form.email"
-              type="email"
-              label="Email"
-              placeholder="you@example.com"
-              required
-            />
-            
-            <GcInput
-              v-model="form.subject"
-              label="Subject"
-              placeholder="How can we help?"
-              required
-            />
+            <div class="form-group">
+              <label for="name">Name</label>
+              <input
+                id="name"
+                v-model="form.name"
+                type="text"
+                placeholder="Your name"
+                required
+                class="form-input"
+              />
+            </div>
             
             <div class="form-group">
-              <label class="form-label">Message</label>
+              <label for="email">Email</label>
+              <input
+                id="email"
+                v-model="form.email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                class="form-input"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="subject">Subject</label>
+              <input
+                id="subject"
+                v-model="form.subject"
+                type="text"
+                placeholder="How can we help?"
+                required
+                class="form-input"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="message">Message</label>
               <textarea
+                id="message"
                 v-model="form.message"
                 placeholder="Tell us more..."
                 rows="5"
                 required
+                class="form-textarea"
               ></textarea>
             </div>
             
-            <GcButton type="submit" variant="primary" :loading="sending">
-              Send message
-            </GcButton>
+            <button type="submit" class="btn btn-primary btn-lg" :disabled="sending">
+              <span v-if="sending" class="spinner"></span>
+              {{ sending ? 'Sending...' : 'Send message' }}
+            </button>
           </form>
 
           <div v-else class="success">
             <span class="success__icon">✓</span>
             <h3>Message sent!</h3>
             <p>Thanks for reaching out. We'll get back to you within 24 hours.</p>
-            <GcButton variant="ghost" @click="sent = false">Send another</GcButton>
+            <button class="btn btn-ghost" @click="sent = false">Send another</button>
           </div>
-        </GcCard>
+        </div>
 
         <!-- Info -->
         <div class="contact-info">
-          <GcCard class="info-card">
+          <div class="info-card">
             <div class="info-card__header">
-              <img src="~/assets/logos/securecloud.png" width="32" height="32" alt="" />
+              <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
+              </svg>
               <div>
                 <h3>GuardCloud Support</h3>
                 <p>We're here to help</p>
@@ -130,13 +161,13 @@ const handleSubmit = async () => {
                 <span>Within 24 hours</span>
               </li>
             </ul>
-          </GcCard>
+          </div>
 
-          <GcCard class="info-card">
+          <div class="info-card">
             <h4>Looking for documentation?</h4>
             <p>Check out our help center for guides, tutorials, and FAQs.</p>
-            <GcButton to="#" variant="outline" size="sm">Visit Help Center</GcButton>
-          </GcCard>
+            <button class="btn btn-ghost btn-sm">Visit Help Center</button>
+          </div>
         </div>
       </div>
     </section>
@@ -146,8 +177,8 @@ const handleSubmit = async () => {
 <style scoped>
 .contact-page {
   min-height: 100vh;
-  background: var(--gc-bg);
-  color: var(--gc-text);
+  background: var(--gc-bg-secondary);
+  color: var(--gc-text-primary);
 }
 
 .container {
@@ -155,8 +186,91 @@ const handleSubmit = async () => {
   margin-inline: auto;
 }
 
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background: var(--gc-primary);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--gc-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gc-text-primary);
+  border-color: var(--gc-border);
+}
+
+.btn-ghost:hover {
+  background: var(--gc-bg-tertiary);
+}
+
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 16px;
+  width: 100%;
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.theme-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--gc-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s;
+}
+
+.theme-btn:hover {
+  background: var(--gc-bg-tertiary);
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Nav */
 .nav {
+  background: var(--gc-bg-primary);
   border-bottom: 1px solid var(--gc-border);
 }
 
@@ -173,12 +287,19 @@ const handleSubmit = async () => {
   gap: 10px;
   font-weight: 700;
   font-size: 18px;
-  color: var(--gc-text);
+  color: var(--gc-text-primary);
   text-decoration: none;
+}
+
+.brand-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--gc-primary);
 }
 
 .nav__actions {
   display: flex;
+  align-items: center;
   gap: 12px;
 }
 
@@ -191,11 +312,12 @@ const handleSubmit = async () => {
   font-size: clamp(32px, 5vw, 48px);
   font-weight: 800;
   margin: 0 0 12px;
+  color: var(--gc-text-primary);
 }
 
 .hero p {
   font-size: 18px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0;
   max-width: 560px;
 }
@@ -219,13 +341,18 @@ const handleSubmit = async () => {
 
 /* Form */
 .contact-form {
+  background: var(--gc-bg-primary);
+  border: 1px solid var(--gc-border);
+  border-radius: 16px;
   padding: 32px;
+  box-shadow: var(--gc-shadow-lg);
 }
 
 .contact-form h2 {
   font-size: 20px;
   font-weight: 700;
   margin: 0 0 24px;
+  color: var(--gc-text-primary);
 }
 
 .form {
@@ -237,35 +364,44 @@ const handleSubmit = async () => {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.form-label {
+.form-group label {
   font-weight: 600;
   font-size: 14px;
+  color: var(--gc-text-primary);
 }
 
-textarea {
+.form-input,
+.form-textarea {
   width: 100%;
   padding: 12px 14px;
-  background: var(--gc-bg-subtle);
-  color: var(--gc-text);
+  background: var(--gc-bg-secondary);
+  color: var(--gc-text-primary);
   border: 1px solid var(--gc-border);
-  border-radius: var(--gc-radius-md);
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 15px;
   font-family: inherit;
-  resize: vertical;
   outline: none;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
 
-textarea:focus {
-  border-color: var(--gc-accent);
-  box-shadow: 0 0 0 3px var(--gc-accent-light);
+.form-textarea {
+  resize: vertical;
+  min-height: 120px;
 }
 
-textarea::placeholder {
-  color: var(--gc-text-muted);
+.form-input:focus,
+.form-textarea:focus {
+  border-color: var(--gc-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: var(--gc-bg-primary);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: var(--gc-text-secondary);
 }
 
 /* Success */
@@ -278,23 +414,24 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   background: var(--gc-success);
   color: #fff;
   border-radius: 50%;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   margin-bottom: 16px;
 }
 
 .success h3 {
-  font-size: 20px;
+  font-size: 22px;
   margin: 0 0 8px;
+  color: var(--gc-text-primary);
 }
 
 .success p {
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0 0 20px;
 }
 
@@ -306,6 +443,9 @@ textarea::placeholder {
 }
 
 .info-card {
+  background: var(--gc-bg-primary);
+  border: 1px solid var(--gc-border);
+  border-radius: 16px;
   padding: 24px;
 }
 
@@ -316,15 +456,22 @@ textarea::placeholder {
   margin-bottom: 20px;
 }
 
+.info-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--gc-primary);
+}
+
 .info-card__header h3 {
   font-size: 16px;
   font-weight: 700;
   margin: 0;
+  color: var(--gc-text-primary);
 }
 
 .info-card__header p {
   font-size: 13px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0;
 }
 
@@ -342,15 +489,16 @@ textarea::placeholder {
   justify-content: space-between;
   align-items: center;
   font-size: 14px;
+  color: var(--gc-text-primary);
 }
 
 .info-list__label {
   font-weight: 600;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
 }
 
 .info-list a {
-  color: var(--gc-accent);
+  color: var(--gc-primary);
   text-decoration: none;
 }
 
@@ -362,11 +510,12 @@ textarea::placeholder {
   font-size: 16px;
   font-weight: 700;
   margin: 0 0 8px;
+  color: var(--gc-text-primary);
 }
 
 .info-card > p {
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0 0 16px;
 }
 </style>

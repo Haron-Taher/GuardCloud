@@ -1,518 +1,431 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '~/composables/useAuth'
+import { useTheme } from '~/composables/useTheme'
+import { useFiles } from '~/composables/useFiles'
+import { formatFileSize } from '~/utils/fileIcons'
+
+const router = useRouter()
+const { authState, user, fetchProfile, updateProfile, changePassword, logout } = useAuth()
+const { theme, isDark, setTheme, init: initTheme } = useTheme()
+const { storageStats, fetchStorageStats } = useFiles()
+
+const loading = ref(false)
+const message = ref({ type: '', text: '' })
+
+// Profile form
+const email = ref('')
+
+// Password form
+const currentPassword = ref('')
+const newPassword = ref('')
+const confirmNewPassword = ref('')
+
+onMounted(async () => {
+  initTheme()
+  
+  if (!authState.value.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+
+  try {
+    await fetchProfile()
+    email.value = user.value?.email || ''
+    await fetchStorageStats()
+  } catch (e) {
+    console.error('Failed to load profile:', e)
+  }
+})
+
+async function saveProfile() {
+  loading.value = true
+  message.value = { type: '', text: '' }
+
+  try {
+    await updateProfile(email.value)
+    message.value = { type: 'success', text: 'Profile updated successfully' }
+  } catch (e: any) {
+    message.value = { type: 'error', text: e?.response?.data?.detail || 'Failed to update profile' }
+  } finally {
+    loading.value = false
+  }
+}
+
+async function savePassword() {
+  if (newPassword.value !== confirmNewPassword.value) {
+    message.value = { type: 'error', text: 'New passwords do not match' }
+    return
+  }
+
+  if (newPassword.value.length < 8) {
+    message.value = { type: 'error', text: 'Password must be at least 8 characters' }
+    return
+  }
+
+  loading.value = true
+  message.value = { type: '', text: '' }
+
+  try {
+    await changePassword(currentPassword.value, newPassword.value)
+    message.value = { type: 'success', text: 'Password changed successfully' }
+    currentPassword.value = ''
+    newPassword.value = ''
+    confirmNewPassword.value = ''
+  } catch (e: any) {
+    message.value = { type: 'error', text: e?.response?.data?.detail || 'Failed to change password' }
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleLogout() {
+  logout()
+  router.push('/login')
+}
+
+function goBack() {
+  router.push('/dashboard')
+}
+</script>
+
 <template>
   <div class="settings-page">
+    <!-- Header -->
     <header class="settings-header">
-      <NuxtLink to="/dashboard" class="back-link">
-        <span>←</span> Back to Drive
-      </NuxtLink>
+      <button class="back-btn" @click="goBack">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back to Dashboard
+      </button>
       <h1>Settings</h1>
     </header>
 
     <div class="settings-content">
+      <!-- Message -->
+      <div v-if="message.text" :class="['message', message.type]">
+        {{ message.text }}
+        <button @click="message = { type: '', text: '' }">×</button>
+      </div>
+
       <!-- Profile Section -->
       <section class="settings-section">
         <h2>Profile</h2>
-        
-        <div class="form-group">
-          <label>Username</label>
-          <input
-            type="text"
-            :value="authState.user?.username"
-            disabled
-            class="form-input disabled"
-          />
-          <p class="form-hint">Username cannot be changed</p>
-        </div>
-
-        <div class="form-group">
-          <label>Email</label>
-          <input
-            v-model="email"
-            type="email"
-            placeholder="your@email.com"
-            class="form-input"
-          />
-        </div>
-
-        <button class="btn btn-primary" @click="updateProfile" :disabled="updating">
-          {{ updating ? 'Saving...' : 'Save Changes' }}
-        </button>
-
-        <Transition name="fade">
-          <div v-if="profileMessage" :class="['message', profileSuccess ? 'success' : 'error']">
-            {{ profileMessage }}
+        <div class="section-content">
+          <div class="info-row">
+            <span class="info-label">Username</span>
+            <span class="info-value">{{ user?.username }}</span>
           </div>
-        </Transition>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              v-model="email"
+              type="email"
+              placeholder="your@email.com"
+              class="form-input"
+            />
+          </div>
+
+          <button class="btn btn-primary" @click="saveProfile" :disabled="loading">
+            {{ loading ? 'Saving...' : 'Save Profile' }}
+          </button>
+        </div>
       </section>
 
       <!-- Password Section -->
       <section class="settings-section">
         <h2>Change Password</h2>
+        <div class="section-content">
+          <div class="form-group">
+            <label for="currentPassword">Current Password</label>
+            <input
+              id="currentPassword"
+              v-model="currentPassword"
+              type="password"
+              placeholder="Enter current password"
+              class="form-input"
+            />
+          </div>
 
-        <div class="form-group">
-          <label>Current Password</label>
-          <input
-            v-model="currentPassword"
-            type="password"
-            placeholder="Enter current password"
-            class="form-input"
-          />
+          <div class="form-group">
+            <label for="newPassword">New Password</label>
+            <input
+              id="newPassword"
+              v-model="newPassword"
+              type="password"
+              placeholder="Enter new password"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="confirmNewPassword">Confirm New Password</label>
+            <input
+              id="confirmNewPassword"
+              v-model="confirmNewPassword"
+              type="password"
+              placeholder="Confirm new password"
+              class="form-input"
+            />
+          </div>
+
+          <button 
+            class="btn btn-primary" 
+            @click="savePassword" 
+            :disabled="loading || !currentPassword || !newPassword"
+          >
+            {{ loading ? 'Changing...' : 'Change Password' }}
+          </button>
         </div>
+      </section>
 
-        <div class="form-group">
-          <label>New Password</label>
-          <input
-            v-model="newPassword"
-            type="password"
-            placeholder="Enter new password"
-            class="form-input"
-          />
-          <div v-if="newPassword" class="password-strength">
-            <div class="strength-bar">
-              <div class="strength-fill" :style="{ width: passwordStrength.percent + '%' }" :class="passwordStrength.class"></div>
-            </div>
-            <span class="strength-text" :class="passwordStrength.class">{{ passwordStrength.label }}</span>
+      <!-- Appearance Section -->
+      <section class="settings-section">
+        <h2>Appearance</h2>
+        <div class="section-content">
+          <div class="theme-options">
+            <button 
+              :class="['theme-option', { active: theme === 'light' }]"
+              @click="setTheme('light')"
+            >
+              <span class="theme-icon">☀️</span>
+              <span class="theme-label">Light</span>
+            </button>
+            <button 
+              :class="['theme-option', { active: theme === 'dark' }]"
+              @click="setTheme('dark')"
+            >
+              <span class="theme-icon">🌙</span>
+              <span class="theme-label">Dark</span>
+            </button>
+            <button 
+              :class="['theme-option', { active: theme === 'system' }]"
+              @click="setTheme('system')"
+            >
+              <span class="theme-icon">💻</span>
+              <span class="theme-label">System</span>
+            </button>
           </div>
         </div>
-
-        <div class="form-group">
-          <label>Confirm New Password</label>
-          <input
-            v-model="confirmPassword"
-            type="password"
-            placeholder="Confirm new password"
-            class="form-input"
-            :class="{ error: confirmPassword && confirmPassword !== newPassword }"
-          />
-          <p v-if="confirmPassword && confirmPassword !== newPassword" class="form-error">
-            Passwords don't match
-          </p>
-        </div>
-
-        <button
-          class="btn btn-primary"
-          @click="changePassword"
-          :disabled="changingPassword || !canChangePassword"
-        >
-          {{ changingPassword ? 'Changing...' : 'Change Password' }}
-        </button>
-
-        <Transition name="fade">
-          <div v-if="passwordMessage" :class="['message', passwordSuccess ? 'success' : 'error']">
-            {{ passwordMessage }}
-          </div>
-        </Transition>
       </section>
 
       <!-- Storage Section -->
       <section class="settings-section">
         <h2>Storage</h2>
-
-        <div class="storage-stats">
-          <div class="stat-row">
-            <span>Used Space</span>
-            <span class="stat-value">{{ formatSize(storageUsed) }}</span>
-          </div>
-          <div class="stat-row">
-            <span>Available Space</span>
-            <span class="stat-value">{{ formatSize(storageLimit - storageUsed) }}</span>
-          </div>
-          <div class="stat-row">
-            <span>Total Files</span>
-            <span class="stat-value">{{ fileCount }}</span>
-          </div>
-          
-          <div class="storage-visual">
+        <div class="section-content">
+          <div class="storage-info">
             <div class="storage-bar">
-              <div class="storage-used" :style="{ width: storagePercent + '%' }"></div>
+              <div 
+                class="storage-fill" 
+                :style="{ width: `${storageStats?.percentage || 0}%` }"
+                :class="{ warning: (storageStats?.percentage || 0) > 80 }"
+              ></div>
             </div>
-            <div class="storage-labels">
-              <span>{{ storagePercent }}% used</span>
-              <span>{{ formatSize(storageLimit) }} total</span>
+            <div class="storage-text">
+              <span>{{ formatFileSize(storageStats?.used || 0) }} used</span>
+              <span>{{ formatFileSize(storageStats?.limit || 0) }} total</span>
+            </div>
+            <div class="storage-details">
+              <div class="detail-item">
+                <span class="detail-label">Files</span>
+                <span class="detail-value">{{ storageStats?.file_count || 0 }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Available</span>
+                <span class="detail-value">{{ formatFileSize(storageStats?.available || 0) }}</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Account Section -->
-      <section class="settings-section">
+      <!-- Danger Zone -->
+      <section class="settings-section danger">
         <h2>Account</h2>
-
-        <div class="account-info">
-          <div class="info-row">
-            <span>Member since</span>
-            <span class="info-value">{{ formatDate(authState.user?.created_at) }}</span>
-          </div>
-        </div>
-
-        <div class="danger-zone">
-          <h3>Danger Zone</h3>
-          <p>Once you delete your account, there is no going back. Please be certain.</p>
-          <button class="btn btn-danger" @click="showDeleteAccountModal = true">
-            Delete Account
+        <div class="section-content">
+          <button class="btn btn-danger" @click="handleLogout">
+            Sign Out
           </button>
         </div>
       </section>
     </div>
-
-    <!-- Delete Account Modal -->
-    <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="showDeleteAccountModal" class="modal-overlay" @click.self="showDeleteAccountModal = false">
-          <div class="modal">
-            <h3>Delete Account?</h3>
-            <p class="modal-warning">
-              This will permanently delete your account and all associated files. This action cannot be undone.
-            </p>
-            <p>Type your username <strong>{{ authState.user?.username }}</strong> to confirm:</p>
-            <input
-              v-model="deleteConfirmation"
-              type="text"
-              placeholder="Enter username"
-              class="form-input"
-            />
-            <div class="modal-actions">
-              <button class="btn btn-ghost" @click="showDeleteAccountModal = false">Cancel</button>
-              <button
-                class="btn btn-danger"
-                :disabled="deleteConfirmation !== authState.user?.username"
-                @click="deleteAccount"
-              >
-                Delete Account
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuth } from '~/composables/useAuth'
-import { useFiles } from '~/composables/useFiles'
-import { formatFileSize } from '~/utils/fileIcons'
-
-const router = useRouter()
-const auth = useAuth()
-const files = useFiles()
-
-// State
-const email = ref('')
-const currentPassword = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
-
-const updating = ref(false)
-const profileMessage = ref('')
-const profileSuccess = ref(false)
-
-const changingPassword = ref(false)
-const passwordMessage = ref('')
-const passwordSuccess = ref(false)
-
-const storageUsed = ref(0)
-const storageLimit = ref(15 * 1024 * 1024 * 1024)
-const fileCount = ref(0)
-
-const showDeleteAccountModal = ref(false)
-const deleteConfirmation = ref('')
-
-// Auth state
-const authState = computed(() => ({
-  user: auth.user.value,
-}))
-
-// Computed
-const storagePercent = computed(() => {
-  if (storageLimit.value === 0) return 0
-  return Math.round((storageUsed.value / storageLimit.value) * 100)
-})
-
-const passwordStrength = computed(() => {
-  const password = newPassword.value
-  if (!password) return { percent: 0, label: '', class: '' }
-  
-  let score = 0
-  if (password.length >= 8) score++
-  if (password.length >= 12) score++
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++
-  if (/\d/.test(password)) score++
-  if (/[^a-zA-Z0-9]/.test(password)) score++
-  
-  const levels = [
-    { percent: 20, label: 'Very weak', class: 'very-weak' },
-    { percent: 40, label: 'Weak', class: 'weak' },
-    { percent: 60, label: 'Fair', class: 'fair' },
-    { percent: 80, label: 'Good', class: 'good' },
-    { percent: 100, label: 'Strong', class: 'strong' },
-  ]
-  
-  return levels[Math.min(score, 4)]
-})
-
-const canChangePassword = computed(() => {
-  return (
-    currentPassword.value &&
-    newPassword.value &&
-    newPassword.value.length >= 8 &&
-    newPassword.value === confirmPassword.value
-  )
-})
-
-// Methods
-function formatSize(bytes: number) {
-  return formatFileSize(bytes)
-}
-
-function formatDate(timestamp: string | undefined) {
-  if (!timestamp) return 'Unknown'
-  const date = new Date(timestamp)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
-async function updateProfile() {
-  updating.value = true
-  profileMessage.value = ''
-  
-  try {
-    await auth.updateProfile(email.value)
-    profileMessage.value = 'Profile updated successfully'
-    profileSuccess.value = true
-    
-    setTimeout(() => {
-      profileMessage.value = ''
-    }, 3000)
-  } catch (err) {
-    profileMessage.value = err instanceof Error ? err.message : 'Failed to update profile'
-    profileSuccess.value = false
-  } finally {
-    updating.value = false
-  }
-}
-
-async function changePassword() {
-  if (!canChangePassword.value) return
-  
-  changingPassword.value = true
-  passwordMessage.value = ''
-  
-  try {
-    await auth.changePassword(currentPassword.value, newPassword.value)
-    passwordMessage.value = 'Password changed successfully'
-    passwordSuccess.value = true
-    
-    // Clear form
-    currentPassword.value = ''
-    newPassword.value = ''
-    confirmPassword.value = ''
-    
-    setTimeout(() => {
-      passwordMessage.value = ''
-    }, 3000)
-  } catch (err) {
-    passwordMessage.value = err instanceof Error ? err.message : 'Failed to change password'
-    passwordSuccess.value = false
-  } finally {
-    changingPassword.value = false
-  }
-}
-
-async function fetchStorageStats() {
-  try {
-    const stats = await files.fetchStorageStats()
-    if (stats) {
-      storageUsed.value = stats.used
-      storageLimit.value = stats.limit
-      fileCount.value = stats.file_count
-    }
-  } catch {
-    // Silently fail
-  }
-}
-
-async function deleteAccount() {
-  // TODO: Implement account deletion endpoint
-  alert('Account deletion is not yet implemented')
-  showDeleteAccountModal.value = false
-}
-
-// Lifecycle
-onMounted(async () => {
-  // Load profile
-  try {
-    const profile = await auth.fetchProfile()
-    if (profile) {
-      email.value = profile.email || ''
-    }
-  } catch {
-    // Redirect to login if not authenticated
-    router.push('/login')
-  }
-  
-  // Load storage stats
-  await fetchStorageStats()
-})
-</script>
 
 <style scoped>
 .settings-page {
   min-height: 100vh;
-  background: var(--gc-bg);
+  background: var(--gc-bg-secondary);
 }
 
 .settings-header {
-  background: var(--gc-surface);
+  background: var(--gc-bg-primary);
   border-bottom: 1px solid var(--gc-border);
-  padding: 1rem 2rem;
-}
-
-.back-link {
-  display: inline-flex;
+  padding: 16px 24px;
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: var(--gc-text-muted);
-  text-decoration: none;
-  font-size: 0.875rem;
-  margin-bottom: 0.5rem;
+  gap: 20px;
 }
 
-.back-link:hover {
-  color: var(--gc-text);
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--gc-text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: var(--gc-bg-tertiary);
+  color: var(--gc-text-primary);
+}
+
+.back-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .settings-header h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gc-text-primary);
 }
 
 .settings-content {
   max-width: 600px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 24px;
+}
+
+.message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.message.success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--gc-success);
+}
+
+.message.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--gc-error);
+}
+
+.message button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.message button:hover {
+  opacity: 1;
 }
 
 .settings-section {
-  background: var(--gc-surface);
+  background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
   border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 20px;
+  overflow: hidden;
 }
 
 .settings-section h2 {
-  font-size: 1.125rem;
+  margin: 0;
+  padding: 16px 20px;
+  font-size: 16px;
   font-weight: 600;
-  margin-bottom: 1.25rem;
-  padding-bottom: 0.75rem;
+  color: var(--gc-text-primary);
   border-bottom: 1px solid var(--gc-border);
+  background: var(--gc-bg-secondary);
+}
+
+.settings-section.danger h2 {
+  color: var(--gc-error);
+}
+
+.section-content {
+  padding: 20px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gc-border);
+  margin-bottom: 16px;
+}
+
+.info-label {
+  font-size: 14px;
+  color: var(--gc-text-secondary);
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gc-text-primary);
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
 
 .form-group label {
   display: block;
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: var(--gc-text);
+  color: var(--gc-text-primary);
+  margin-bottom: 8px;
 }
 
 .form-input {
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: 12px 14px;
   border: 1px solid var(--gc-border);
   border-radius: 8px;
-  font-size: 0.875rem;
-  background: var(--gc-bg);
-  color: var(--gc-text);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background: var(--gc-bg-secondary);
+  color: var(--gc-text-primary);
+  font-size: 14px;
+  transition: all 0.2s;
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--gc-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
-
-.form-input.disabled {
-  background: var(--gc-border);
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.form-input.error {
-  border-color: var(--gc-error);
-}
-
-.form-hint {
-  font-size: 0.75rem;
-  color: var(--gc-text-muted);
-  margin-top: 0.25rem;
-}
-
-.form-error {
-  font-size: 0.75rem;
-  color: var(--gc-error);
-  margin-top: 0.25rem;
-}
-
-.password-strength {
-  margin-top: 0.5rem;
-}
-
-.strength-bar {
-  height: 4px;
-  background: var(--gc-border);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 0.25rem;
-}
-
-.strength-fill {
-  height: 100%;
-  transition: width 0.3s ease;
-}
-
-.strength-fill.very-weak { background: #ef4444; }
-.strength-fill.weak { background: #f97316; }
-.strength-fill.fair { background: #eab308; }
-.strength-fill.good { background: #22c55e; }
-.strength-fill.strong { background: #10b981; }
-
-.strength-text {
-  font-size: 0.75rem;
-}
-
-.strength-text.very-weak { color: #ef4444; }
-.strength-text.weak { color: #f97316; }
-.strength-text.fair { color: #eab308; }
-.strength-text.good { color: #22c55e; }
-.strength-text.strong { color: #10b981; }
 
 .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
+  padding: 12px 20px;
+  border: none;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  border: none;
-  transition: all 0.15s ease;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  transition: all 0.2s;
 }
 
 .btn-primary {
@@ -524,13 +437,9 @@ onMounted(async () => {
   background: var(--gc-primary-hover);
 }
 
-.btn-ghost {
-  background: transparent;
-  color: var(--gc-text);
-}
-
-.btn-ghost:hover {
-  background: var(--gc-bg);
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-danger {
@@ -538,158 +447,102 @@ onMounted(async () => {
   color: white;
 }
 
-.btn-danger:hover:not(:disabled) {
+.btn-danger:hover {
   background: #dc2626;
 }
 
-.message {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-}
-
-.message.success {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.2);
-}
-
-.message.error {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--gc-error);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-}
-
-/* Storage Stats */
-.storage-stats {
-  padding: 0.5rem 0;
-}
-
-.stat-row {
+/* Theme options */
+.theme-options {
   display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
+  gap: 12px;
 }
 
-.stat-value {
+.theme-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: var(--gc-bg-secondary);
+  border: 2px solid var(--gc-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.theme-option:hover {
+  border-color: var(--gc-primary);
+}
+
+.theme-option.active {
+  border-color: var(--gc-primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.theme-icon {
+  font-size: 28px;
+}
+
+.theme-label {
+  font-size: 14px;
   font-weight: 500;
+  color: var(--gc-text-primary);
 }
 
-.storage-visual {
-  margin-top: 1rem;
+/* Storage */
+.storage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .storage-bar {
   height: 8px;
-  background: var(--gc-border);
+  background: var(--gc-bg-tertiary);
   border-radius: 4px;
   overflow: hidden;
 }
 
-.storage-used {
+.storage-fill {
   height: 100%;
   background: var(--gc-primary);
-  transition: width 0.3s ease;
+  border-radius: 4px;
+  transition: width 0.3s;
 }
 
-.storage-labels {
+.storage-fill.warning {
+  background: var(--gc-warning);
+}
+
+.storage-text {
   display: flex;
   justify-content: space-between;
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
-  color: var(--gc-text-muted);
+  font-size: 14px;
+  color: var(--gc-text-secondary);
 }
 
-/* Account Info */
-.account-info {
-  margin-bottom: 1.5rem;
-}
-
-.info-row {
+.storage-details {
   display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-}
-
-.info-value {
-  color: var(--gc-text-muted);
-}
-
-/* Danger Zone */
-.danger-zone {
+  gap: 24px;
+  padding-top: 12px;
   border-top: 1px solid var(--gc-border);
-  padding-top: 1rem;
-  margin-top: 1rem;
 }
 
-.danger-zone h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--gc-error);
-  margin-bottom: 0.5rem;
-}
-
-.danger-zone p {
-  font-size: 0.875rem;
-  color: var(--gc-text-muted);
-  margin-bottom: 1rem;
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+.detail-item {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.modal {
-  background: var(--gc-surface);
-  border-radius: 16px;
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 400px;
+.detail-label {
+  font-size: 12px;
+  color: var(--gc-text-secondary);
 }
 
-.modal h3 {
-  font-size: 1.125rem;
+.detail-value {
+  font-size: 16px;
   font-weight: 600;
-  margin-bottom: 1rem;
-}
-
-.modal-warning {
-  color: var(--gc-error);
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-/* Transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-/* Responsive */
-@media (max-width: 640px) {
-  .settings-content {
-    padding: 1rem;
-  }
+  color: var(--gc-text-primary);
 }
 </style>

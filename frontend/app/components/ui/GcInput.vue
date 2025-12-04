@@ -93,11 +93,11 @@ const computedType = computed(() => {
 .gc-input-label {
   font-weight: 600;
   font-size: 14px;
-  color: var(--gc-text, #0b1220);
+  color: var(--gc-text-primary);
 }
 
 .gc-input-required {
-  color: var(--gc-error, #ef4444);
+  color: var(--gc-error);
   margin-left: 2px;
 }
 
@@ -112,17 +112,17 @@ const computedType = computed(() => {
   left: 12px;
   width: 18px;
   height: 18px;
-  color: var(--gc-text-muted, #5b6b7a);
+  color: var(--gc-text-secondary);
   pointer-events: none;
 }
 
 .gc-input {
   width: 100%;
   padding: 10px 14px;
-  background: var(--gc-bg-subtle, #f8fafc);
-  color: var(--gc-text, #0b1220);
-  border: 1px solid var(--gc-border, #e6e9ef);
-  border-radius: var(--gc-radius-md, 12px);
+  background: var(--gc-bg-secondary);
+  color: var(--gc-text-primary);
+  border: 1px solid var(--gc-border);
+  border-radius: 10px;
   font-size: 14px;
   outline: none;
   transition: all 0.15s ease;
@@ -133,21 +133,21 @@ const computedType = computed(() => {
 }
 
 .gc-input::placeholder {
-  color: var(--gc-text-muted, #5b6b7a);
+  color: var(--gc-text-secondary);
 }
 
 .gc-input:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--gc-border, #e6e9ef) 50%, var(--gc-accent, #0b57d0));
+  border-color: var(--gc-primary);
 }
 
 .gc-input:focus {
-  border-color: var(--gc-accent, #0b57d0);
-  background: var(--gc-bg, #fff);
-  box-shadow: 0 0 0 3px var(--gc-accent-light, rgba(11, 87, 208, 0.1));
+  border-color: var(--gc-primary);
+  background: var(--gc-bg-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .gc-input--error {
-  border-color: var(--gc-error, #ef4444);
+  border-color: var(--gc-error);
 }
 
 .gc-input--error:focus {
@@ -168,13 +168,13 @@ const computedType = computed(() => {
   padding: 4px;
   background: none;
   border: none;
-  color: var(--gc-text-muted, #5b6b7a);
+  color: var(--gc-text-secondary);
   cursor: pointer;
   transition: color 0.15s ease;
 }
 
 .gc-input-toggle:hover {
-  color: var(--gc-accent, #0b57d0);
+  color: var(--gc-primary);
 }
 
 .gc-input-toggle svg {
@@ -184,13 +184,13 @@ const computedType = computed(() => {
 
 .gc-input-error {
   font-size: 13px;
-  color: var(--gc-error, #ef4444);
+  color: var(--gc-error);
   margin: 0;
 }
 
 .gc-input-hint {
   font-size: 13px;
-  color: var(--gc-text-muted, #5b6b7a);
+  color: var(--gc-text-secondary);
   margin: 0;
 }
 </style>

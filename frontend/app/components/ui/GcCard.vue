@@ -33,14 +33,14 @@ withDefaults(defineProps<Props>(), {
 
 <style scoped>
 .gc-card {
-  background: var(--gc-card, #f5f7fb);
-  border: 1px solid var(--gc-border, #e6e9ef);
-  border-radius: var(--gc-radius-lg, 16px);
+  background: var(--gc-bg-primary);
+  border: 1px solid var(--gc-border);
+  border-radius: 16px;
   transition: all 0.2s ease;
 }
 
 .gc-card--elevated {
-  box-shadow: var(--gc-shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  box-shadow: var(--gc-shadow-lg);
 }
 
 .gc-card--outlined {
@@ -49,7 +49,7 @@ withDefaults(defineProps<Props>(), {
 
 .gc-card--hoverable:hover {
   transform: translateY(-2px);
-  box-shadow: var(--gc-shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  box-shadow: var(--gc-shadow-lg);
 }
 
 .gc-card__header {
@@ -60,12 +60,12 @@ withDefaults(defineProps<Props>(), {
   font-size: 18px;
   font-weight: 700;
   margin: 0 0 4px;
-  color: var(--gc-text, #0b1220);
+  color: var(--gc-text-primary);
 }
 
 .gc-card__subtitle {
   font-size: 14px;
-  color: var(--gc-text-muted, #5b6b7a);
+  color: var(--gc-text-secondary);
   margin: 0;
 }
 
@@ -79,7 +79,7 @@ withDefaults(defineProps<Props>(), {
 
 .gc-card__footer {
   padding: 0 20px 20px;
-  border-top: 1px solid var(--gc-border, #e6e9ef);
+  border-top: 1px solid var(--gc-border);
   margin-top: -4px;
   padding-top: 16px;
 }

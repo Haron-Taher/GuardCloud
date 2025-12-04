@@ -2,9 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '~/composables/useAuth'
+import { useTheme } from '~/composables/useTheme'
 
 const router = useRouter()
 const { signup, authState } = useAuth()
+const { isDark, toggleTheme, init: initTheme } = useTheme()
 
 const username = ref('')
 const email = ref('')
@@ -14,8 +16,9 @@ const loading = ref(false)
 const error = ref('')
 const success = ref(false)
 
-// Redirect if already logged in
 onMounted(() => {
+  initTheme()
+  
   if (authState.value.isAuthenticated) {
     router.push('/dashboard')
   }
@@ -44,63 +47,30 @@ const passwordStrength = computed(() => {
   return { score, ...levels[Math.min(score, 4)] }
 })
 
-// Validation
-const validationErrors = computed(() => {
-  const errors: string[] = []
-  
-  if (username.value && username.value.length < 3) {
-    errors.push('Username must be at least 3 characters')
-  }
-  
-  if (username.value && !/^[a-zA-Z0-9_-]+$/.test(username.value)) {
-    errors.push('Username can only contain letters, numbers, underscores, and hyphens')
-  }
-  
-  if (email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-    errors.push('Please enter a valid email address')
-  }
-  
-  if (password.value && password.value.length < 8) {
-    errors.push('Password must be at least 8 characters')
-  }
-  
-  if (confirmPassword.value && password.value !== confirmPassword.value) {
-    errors.push('Passwords do not match')
-  }
-  
-  return errors
-})
-
 const canSubmit = computed(() => {
   return (
     username.value.trim().length >= 3 &&
     password.value.length >= 8 &&
-    password.value === confirmPassword.value &&
-    validationErrors.value.length === 0
+    password.value === confirmPassword.value
   )
 })
 
 const onSubmit = async () => {
-  // Prevent double submission
   if (loading.value || !canSubmit.value) return
   
-  // Clear previous errors
   error.value = ''
-
   loading.value = true
 
   try {
     await signup(username.value, email.value, password.value)
     success.value = true
     
-    // Redirect to login after brief delay
     setTimeout(() => {
       router.push('/login')
     }, 2000)
   } catch (e: any) {
-    // Handle specific error cases
     if (e?.response?.status === 409) {
-      error.value = 'Username or email already exists'
+      error.value = 'Username already exists'
     } else if (e?.response?.status === 400) {
       error.value = e?.response?.data?.detail || 'Invalid input. Please check your details.'
     } else if (e?.response?.status >= 500) {
@@ -118,10 +88,18 @@ const onSubmit = async () => {
 
 <template>
   <div class="auth-page">
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" @click="toggleTheme" :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
+      <span v-if="isDark">☀️</span>
+      <span v-else>🌙</span>
+    </button>
+
     <div class="auth-container">
       <!-- Logo -->
       <NuxtLink to="/" class="auth-logo">
-        <span class="logo-icon">☁️</span>
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
+        </svg>
         <span>GuardCloud</span>
       </NuxtLink>
 
@@ -144,46 +122,64 @@ const onSubmit = async () => {
           <form @submit.prevent="onSubmit" class="auth-form">
             <div class="form-group">
               <label for="username">Username</label>
-              <input
-                id="username"
-                v-model="username"
-                type="text"
-                placeholder="Choose a username"
-                required
-                autocomplete="username"
-                :disabled="loading"
-                class="form-input"
-              />
-              <span v-if="username && username.length < 3" class="field-error">
+              <div class="input-wrapper">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                <input
+                  id="username"
+                  v-model="username"
+                  type="text"
+                  placeholder="Choose a username"
+                  required
+                  autocomplete="username"
+                  :disabled="loading"
+                  class="form-input"
+                />
+              </div>
+              <span v-if="username && username.length < 3" class="field-hint error">
                 At least 3 characters required
               </span>
             </div>
 
             <div class="form-group">
-              <label for="email">Email (optional)</label>
-              <input
-                id="email"
-                v-model="email"
-                type="email"
-                placeholder="you@example.com"
-                autocomplete="email"
-                :disabled="loading"
-                class="form-input"
-              />
+              <label for="email">Email <span class="optional">(optional)</span></label>
+              <div class="input-wrapper">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                <input
+                  id="email"
+                  v-model="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  autocomplete="email"
+                  :disabled="loading"
+                  class="form-input"
+                />
+              </div>
             </div>
 
             <div class="form-group">
               <label for="password">Password</label>
-              <input
-                id="password"
-                v-model="password"
-                type="password"
-                placeholder="Create a strong password"
-                required
-                autocomplete="new-password"
-                :disabled="loading"
-                class="form-input"
-              />
+              <div class="input-wrapper">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <input
+                  id="password"
+                  v-model="password"
+                  type="password"
+                  placeholder="Create a strong password"
+                  required
+                  autocomplete="new-password"
+                  :disabled="loading"
+                  class="form-input"
+                />
+              </div>
               
               <!-- Password strength indicator -->
               <div v-if="password" class="password-strength">
@@ -204,30 +200,38 @@ const onSubmit = async () => {
 
             <div class="form-group">
               <label for="confirmPassword">Confirm Password</label>
-              <input
-                id="confirmPassword"
-                v-model="confirmPassword"
-                type="password"
-                placeholder="Confirm your password"
-                required
-                autocomplete="new-password"
-                :disabled="loading"
-                class="form-input"
-              />
-              <span v-if="confirmPassword && password !== confirmPassword" class="field-error">
+              <div class="input-wrapper">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <input
+                  id="confirmPassword"
+                  v-model="confirmPassword"
+                  type="password"
+                  placeholder="Confirm your password"
+                  required
+                  autocomplete="new-password"
+                  :disabled="loading"
+                  class="form-input"
+                />
+              </div>
+              <span v-if="confirmPassword && password !== confirmPassword" class="field-hint error">
                 Passwords do not match
               </span>
             </div>
 
             <div v-if="error" class="auth-error">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
               <span>{{ error }}</span>
             </div>
 
-            <button 
-              type="submit" 
-              :disabled="loading || !canSubmit"
-              class="btn btn-primary auth-submit"
-            >
+            <button type="submit" :disabled="loading || !canSubmit" class="btn-submit">
+              <span v-if="loading" class="spinner"></span>
               {{ loading ? 'Creating account...' : 'Create account' }}
             </button>
           </form>
@@ -254,12 +258,35 @@ const onSubmit = async () => {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: var(--gc-bg-secondary);
+  position: relative;
+}
+
+.theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--gc-border);
+  background: var(--gc-bg-primary);
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+  background: var(--gc-bg-tertiary);
+  border-color: var(--gc-primary);
 }
 
 .auth-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -270,37 +297,40 @@ const onSubmit = async () => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--gc-text-primary);
   text-decoration: none;
 }
 
 .logo-icon {
-  font-size: 32px;
+  width: 36px;
+  height: 36px;
+  color: var(--gc-primary);
 }
 
 .auth-card {
   background: var(--gc-bg-primary);
   border-radius: 16px;
   padding: 32px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--gc-shadow-lg);
+  border: 1px solid var(--gc-border);
 }
 
 .auth-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .auth-header h1 {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   margin: 0 0 8px;
   color: var(--gc-text-primary);
 }
 
 .auth-header p {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--gc-text-secondary);
   margin: 0;
 }
@@ -314,28 +344,59 @@ const onSubmit = async () => {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .form-group label {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--gc-text-primary);
 }
 
+.optional {
+  font-weight: 400;
+  color: var(--gc-text-secondary);
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: var(--gc-text-secondary);
+  pointer-events: none;
+}
+
 .form-input {
-  padding: 12px 14px;
+  width: 100%;
+  padding: 14px 14px 14px 46px;
   border: 1px solid var(--gc-border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--gc-bg-secondary);
   color: var(--gc-text-primary);
   font-size: 15px;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
+}
+
+.form-input::placeholder {
+  color: var(--gc-text-secondary);
+}
+
+.form-input:hover {
+  border-color: var(--gc-primary);
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--gc-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  background: var(--gc-bg-primary);
 }
 
 .form-input:disabled {
@@ -343,8 +404,12 @@ const onSubmit = async () => {
   cursor: not-allowed;
 }
 
-.field-error {
+.field-hint {
   font-size: 12px;
+  color: var(--gc-text-secondary);
+}
+
+.field-hint.error {
   color: var(--gc-error);
 }
 
@@ -352,7 +417,6 @@ const onSubmit = async () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 4px;
 }
 
 .strength-bar {
@@ -378,42 +442,64 @@ const onSubmit = async () => {
 .auth-error {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 12px 14px;
   background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
   color: var(--gc-error);
-  font-size: 13px;
+  font-size: 14px;
 }
 
-.btn {
-  padding: 12px 24px;
+.auth-error svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.btn-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 24px;
   border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
+  border-radius: 10px;
   background: var(--gc-primary);
   color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-submit:hover:not(:disabled) {
   background: var(--gc-primary-hover);
+  transform: translateY(-1px);
 }
 
-.btn-primary:disabled {
-  opacity: 0.6;
+.btn-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-submit:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
-.auth-submit {
-  width: 100%;
-  margin-top: 4px;
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .auth-footer {
@@ -444,6 +530,7 @@ const onSubmit = async () => {
   font-size: 14px;
   color: var(--gc-text-secondary);
   text-decoration: none;
+  transition: color 0.2s;
 }
 
 .auth-back:hover {

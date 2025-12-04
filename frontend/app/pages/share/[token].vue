@@ -2,10 +2,12 @@
   <div class="share-page">
     <div class="share-container">
       <!-- Logo -->
-      <div class="logo">
-        <span class="logo-icon">☁️</span>
+      <NuxtLink to="/" class="logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
+        </svg>
         <span class="logo-text">GuardCloud</span>
-      </div>
+      </NuxtLink>
 
       <!-- Loading State -->
       <div v-if="loading" class="loading-state">
@@ -46,6 +48,7 @@
           @click="downloadFile"
           :disabled="downloading || (fileInfo?.has_password && !password)"
         >
+          <span v-if="downloading" class="spinner-small"></span>
           <span v-if="downloading">Downloading...</span>
           <span v-else>⬇️ Download</span>
         </button>
@@ -66,6 +69,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useTheme } from '~/composables/useTheme'
 import { getFileEmoji, formatFileSize } from '~/utils/fileIcons'
 
 interface FileInfo {
@@ -75,6 +79,7 @@ interface FileInfo {
 }
 
 const route = useRoute()
+const { init: initTheme } = useTheme()
 const token = computed(() => route.params.token as string)
 
 const loading = ref(true)
@@ -95,6 +100,7 @@ function formatSize(bytes: number) {
 }
 
 onMounted(async () => {
+  initTheme()
   await loadFileInfo()
 })
 
@@ -191,7 +197,7 @@ async function downloadFile() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: var(--gc-bg-secondary);
   padding: 20px;
 }
 
@@ -206,12 +212,15 @@ async function downloadFile() {
 .logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 32px;
+  text-decoration: none;
 }
 
 .logo-icon {
-  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  color: var(--gc-primary);
 }
 
 .logo-text {
@@ -237,6 +246,15 @@ async function downloadFile() {
   animation: spin 1s linear infinite;
 }
 
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -244,9 +262,10 @@ async function downloadFile() {
 .error-state {
   text-align: center;
   background: var(--gc-bg-primary);
+  border: 1px solid var(--gc-border);
   border-radius: 16px;
   padding: 40px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--gc-shadow-lg);
 }
 
 .error-icon {
@@ -266,10 +285,11 @@ async function downloadFile() {
 .file-card {
   width: 100%;
   background: var(--gc-bg-primary);
+  border: 1px solid var(--gc-border);
   border-radius: 16px;
   padding: 40px;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--gc-shadow-lg);
 }
 
 .file-icon {
@@ -314,6 +334,7 @@ async function downloadFile() {
 .password-input:focus {
   outline: none;
   border-color: var(--gc-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .password-error {
@@ -329,7 +350,7 @@ async function downloadFile() {
   gap: 8px;
   padding: 12px 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -371,6 +392,7 @@ async function downloadFile() {
 .share-footer p {
   color: var(--gc-text-secondary);
   font-size: 14px;
+  margin: 0;
 }
 
 .share-footer a {

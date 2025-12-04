@@ -560,6 +560,12 @@ watch(searchQuery, async (query) => {
 
 // Navigation
 function navigateSection(section: string) {
+  // Handle settings page navigation
+  if (section === 'settings') {
+    router.push('/settings')
+    return
+  }
+  
   activeSection.value = section as any
   searchQuery.value = ''
   selectedItem.value = null

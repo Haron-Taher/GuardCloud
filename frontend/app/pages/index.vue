@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { GcButton } from '~/components/ui'
+import { onMounted } from 'vue'
+import { useTheme } from '~/composables/useTheme'
+
+const { isDark, toggleTheme, init: initTheme } = useTheme()
+
+onMounted(() => {
+  initTheme()
+})
 </script>
 
 <template>
@@ -9,7 +15,9 @@ import { GcButton } from '~/components/ui'
     <header class="nav">
       <div class="container nav__inner">
         <NuxtLink to="/" class="brand">
-          <img src="~/assets/logos/securecloud.png" width="32" height="32" alt="GuardCloud" />
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
+          </svg>
           <span>GuardCloud</span>
         </NuxtLink>
 
@@ -21,8 +29,12 @@ import { GcButton } from '~/components/ui'
         </nav>
 
         <div class="nav__actions">
-          <GcButton to="/login" variant="ghost">Sign in</GcButton>
-          <GcButton to="/signup" variant="primary">Get started</GcButton>
+          <button class="theme-btn" @click="toggleTheme" :title="isDark ? 'Light mode' : 'Dark mode'">
+            <span v-if="isDark">☀️</span>
+            <span v-else>🌙</span>
+          </button>
+          <NuxtLink to="/login" class="btn btn-ghost">Sign in</NuxtLink>
+          <NuxtLink to="/signup" class="btn btn-primary">Get started</NuxtLink>
         </div>
       </div>
     </header>
@@ -36,8 +48,8 @@ import { GcButton } from '~/components/ui'
           <p>GuardCloud encrypts your files before they leave your device. Share and collaborate with end-to-end encryption that even we can't read.</p>
           
           <div class="hero__cta">
-            <GcButton to="/signup" variant="primary" size="lg">Start free trial</GcButton>
-            <GcButton href="#features" variant="ghost" size="lg">Learn more</GcButton>
+            <NuxtLink to="/signup" class="btn btn-primary btn-lg">Start free trial</NuxtLink>
+            <a href="#features" class="btn btn-ghost btn-lg">Learn more</a>
           </div>
 
           <div class="hero__stats">
@@ -63,7 +75,11 @@ import { GcButton } from '~/components/ui'
               <span class="dot yellow"></span>
               <span class="dot green"></span>
             </div>
-            <img src="~/assets/logos/securecloud.png" alt="Dashboard preview" class="hero__preview" />
+            <div class="hero__preview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
+              </svg>
+            </div>
           </div>
         </div>
       </div>
@@ -143,7 +159,7 @@ import { GcButton } from '~/components/ui'
             </li>
           </ul>
 
-          <GcButton to="/signup" variant="primary">Start securing your files</GcButton>
+          <NuxtLink to="/signup" class="btn btn-primary">Start securing your files</NuxtLink>
         </div>
 
         <div class="security__visual">
@@ -182,7 +198,7 @@ import { GcButton } from '~/components/ui'
               <li>Mobile & desktop apps</li>
               <li>7-day version history</li>
             </ul>
-            <GcButton to="/signup" variant="ghost" class="price-card__cta">Get started</GcButton>
+            <NuxtLink to="/signup" class="btn btn-ghost price-card__cta">Get started</NuxtLink>
           </div>
 
           <div class="price-card price-card--featured">
@@ -202,7 +218,7 @@ import { GcButton } from '~/components/ui'
               <li>30-day version history</li>
               <li>Advanced sharing controls</li>
             </ul>
-            <GcButton to="/signup" variant="primary" class="price-card__cta">Start free trial</GcButton>
+            <NuxtLink to="/signup" class="btn btn-primary price-card__cta">Start free trial</NuxtLink>
           </div>
 
           <div class="price-card">
@@ -222,7 +238,7 @@ import { GcButton } from '~/components/ui'
               <li>BYOK support</li>
               <li>Audit logs</li>
             </ul>
-            <GcButton to="/contact" variant="ghost" class="price-card__cta">Contact sales</GcButton>
+            <NuxtLink to="/contact" class="btn btn-ghost price-card__cta">Contact sales</NuxtLink>
           </div>
         </div>
       </div>
@@ -265,8 +281,8 @@ import { GcButton } from '~/components/ui'
         <h2>Ready to secure your files?</h2>
         <p>Start your free trial today. No credit card required.</p>
         <div class="cta__actions">
-          <GcButton to="/signup" variant="primary" size="lg">Create free account</GcButton>
-          <GcButton to="/contact" variant="ghost" size="lg">Talk to sales</GcButton>
+          <NuxtLink to="/signup" class="btn btn-white btn-lg">Create free account</NuxtLink>
+          <NuxtLink to="/contact" class="btn btn-outline-white btn-lg">Talk to sales</NuxtLink>
         </div>
       </div>
     </section>
@@ -275,7 +291,9 @@ import { GcButton } from '~/components/ui'
     <footer class="footer">
       <div class="container footer__inner">
         <div class="footer__brand">
-          <img src="~/assets/logos/securecloud.png" width="24" height="24" alt="GuardCloud" />
+          <svg class="footer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
+          </svg>
           <span>GuardCloud</span>
         </div>
         <nav class="footer__links">
@@ -294,8 +312,9 @@ import { GcButton } from '~/components/ui'
 
 <style scoped>
 .landing {
-  background: var(--gc-bg);
-  color: var(--gc-text);
+  background: var(--gc-bg-primary);
+  color: var(--gc-text-primary);
+  min-height: 100vh;
 }
 
 .container {
@@ -303,13 +322,89 @@ import { GcButton } from '~/components/ui'
   margin-inline: auto;
 }
 
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background: var(--gc-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--gc-primary-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gc-text-primary);
+  border-color: var(--gc-border);
+}
+
+.btn-ghost:hover {
+  background: var(--gc-bg-tertiary);
+}
+
+.btn-white {
+  background: white;
+  color: var(--gc-primary);
+}
+
+.btn-white:hover {
+  background: #f1f5f9;
+}
+
+.btn-outline-white {
+  background: transparent;
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-outline-white:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 16px;
+}
+
+.theme-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--gc-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s;
+}
+
+.theme-btn:hover {
+  background: var(--gc-bg-tertiary);
+}
+
 /* Navigation */
 .nav {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: color-mix(in srgb, var(--gc-bg) 90%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--gc-bg-primary);
   border-bottom: 1px solid var(--gc-border);
 }
 
@@ -327,8 +422,14 @@ import { GcButton } from '~/components/ui'
   gap: 10px;
   font-size: 20px;
   font-weight: 700;
-  color: var(--gc-text);
+  color: var(--gc-text-primary);
   text-decoration: none;
+}
+
+.brand-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--gc-primary);
 }
 
 .nav__links {
@@ -337,18 +438,19 @@ import { GcButton } from '~/components/ui'
 }
 
 .nav__links a {
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.15s;
 }
 
 .nav__links a:hover {
-  color: var(--gc-text);
+  color: var(--gc-text-primary);
 }
 
 .nav__actions {
   display: flex;
+  align-items: center;
   gap: 12px;
 }
 
@@ -379,9 +481,9 @@ import { GcButton } from '~/components/ui'
 .hero__badge {
   display: inline-block;
   padding: 6px 14px;
-  background: var(--gc-accent-light);
-  color: var(--gc-accent);
-  border-radius: var(--gc-radius-full);
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--gc-primary);
+  border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 16px;
@@ -393,11 +495,12 @@ import { GcButton } from '~/components/ui'
   font-weight: 800;
   letter-spacing: -0.02em;
   margin: 0 0 20px;
+  color: var(--gc-text-primary);
 }
 
 .hero__content p {
   font-size: 18px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   line-height: 1.6;
   margin: 0 0 28px;
   max-width: 540px;
@@ -423,11 +526,12 @@ import { GcButton } from '~/components/ui'
 .stat strong {
   font-size: 20px;
   font-weight: 700;
+  color: var(--gc-text-primary);
 }
 
 .stat span {
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
 }
 
 .hero__visual {
@@ -436,19 +540,20 @@ import { GcButton } from '~/components/ui'
 }
 
 .hero__card {
-  background: var(--gc-card);
+  background: var(--gc-bg-secondary);
   border: 1px solid var(--gc-border);
-  border-radius: var(--gc-radius-xl);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: var(--gc-shadow-xl);
+  box-shadow: var(--gc-shadow-lg);
   max-width: 500px;
+  width: 100%;
 }
 
 .hero__card-header {
   display: flex;
   gap: 8px;
   padding: 12px 16px;
-  background: var(--gc-border);
+  background: var(--gc-bg-tertiary);
 }
 
 .dot {
@@ -462,10 +567,18 @@ import { GcButton } from '~/components/ui'
 .dot.green { background: #28c840; }
 
 .hero__preview {
-  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 280px;
-  object-fit: contain;
   padding: 32px;
+}
+
+.hero__preview svg {
+  width: 120px;
+  height: 120px;
+  color: var(--gc-primary);
+  opacity: 0.5;
 }
 
 /* Section header */
@@ -479,18 +592,19 @@ import { GcButton } from '~/components/ui'
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 700;
   margin: 0 0 12px;
+  color: var(--gc-text-primary);
 }
 
 .section-header p {
   font-size: 18px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0;
 }
 
 /* Features */
 .features {
   padding: clamp(64px, 10vw, 120px) 0;
-  background: var(--gc-bg-subtle);
+  background: var(--gc-bg-secondary);
 }
 
 .features__grid {
@@ -500,9 +614,9 @@ import { GcButton } from '~/components/ui'
 }
 
 .feature-card {
-  background: var(--gc-bg);
+  background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
-  border-radius: var(--gc-radius-lg);
+  border-radius: 12px;
   padding: 28px;
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -521,11 +635,12 @@ import { GcButton } from '~/components/ui'
   font-size: 18px;
   font-weight: 700;
   margin: 0 0 8px;
+  color: var(--gc-text-primary);
 }
 
 .feature-card p {
   font-size: 15px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0;
   line-height: 1.6;
 }
@@ -552,11 +667,12 @@ import { GcButton } from '~/components/ui'
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 700;
   margin: 0 0 16px;
+  color: var(--gc-text-primary);
 }
 
 .security__content > p {
   font-size: 17px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0 0 28px;
   line-height: 1.6;
 }
@@ -574,6 +690,7 @@ import { GcButton } from '~/components/ui'
   align-items: center;
   gap: 12px;
   font-size: 15px;
+  color: var(--gc-text-primary);
 }
 
 .check {
@@ -582,8 +699,8 @@ import { GcButton } from '~/components/ui'
   justify-content: center;
   width: 24px;
   height: 24px;
-  background: var(--gc-accent-light);
-  color: var(--gc-accent);
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--gc-primary);
   border-radius: 50%;
   font-size: 12px;
   font-weight: 700;
@@ -598,9 +715,9 @@ import { GcButton } from '~/components/ui'
   display: flex;
   align-items: center;
   gap: 16px;
-  background: var(--gc-card);
+  background: var(--gc-bg-secondary);
   border: 1px solid var(--gc-border);
-  border-radius: var(--gc-radius-xl);
+  border-radius: 16px;
   padding: 24px 32px;
   box-shadow: var(--gc-shadow-lg);
 }
@@ -613,17 +730,18 @@ import { GcButton } from '~/components/ui'
   display: block;
   font-size: 18px;
   font-weight: 700;
+  color: var(--gc-text-primary);
 }
 
 .security__badge-text span {
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
 }
 
 /* Pricing */
 .pricing {
   padding: clamp(64px, 10vw, 120px) 0;
-  background: var(--gc-bg-subtle);
+  background: var(--gc-bg-secondary);
 }
 
 .pricing__grid {
@@ -635,9 +753,9 @@ import { GcButton } from '~/components/ui'
 }
 
 .price-card {
-  background: var(--gc-bg);
+  background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
-  border-radius: var(--gc-radius-xl);
+  border-radius: 16px;
   padding: 32px;
   position: relative;
   display: flex;
@@ -645,8 +763,8 @@ import { GcButton } from '~/components/ui'
 }
 
 .price-card--featured {
-  border-color: var(--gc-accent);
-  box-shadow: 0 0 0 1px var(--gc-accent);
+  border-color: var(--gc-primary);
+  box-shadow: 0 0 0 1px var(--gc-primary);
 }
 
 .price-card__badge {
@@ -654,10 +772,10 @@ import { GcButton } from '~/components/ui'
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--gc-accent);
+  background: var(--gc-primary);
   color: #fff;
   padding: 4px 16px;
-  border-radius: var(--gc-radius-full);
+  border-radius: 20px;
   font-size: 12px;
   font-weight: 700;
 }
@@ -670,11 +788,12 @@ import { GcButton } from '~/components/ui'
   font-size: 22px;
   font-weight: 700;
   margin: 0 0 4px;
+  color: var(--gc-text-primary);
 }
 
 .price-card__header p {
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0;
 }
 
@@ -685,11 +804,12 @@ import { GcButton } from '~/components/ui'
 .price-card__price strong {
   font-size: 48px;
   font-weight: 800;
+  color: var(--gc-text-primary);
 }
 
 .price-card__price span {
   font-size: 16px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
 }
 
 .price-card__features {
@@ -705,18 +825,20 @@ import { GcButton } from '~/components/ui'
   font-size: 15px;
   padding-left: 24px;
   position: relative;
+  color: var(--gc-text-primary);
 }
 
 .price-card__features li::before {
   content: '✓';
   position: absolute;
   left: 0;
-  color: var(--gc-accent);
+  color: var(--gc-primary);
   font-weight: 700;
 }
 
 .price-card__cta {
   width: 100%;
+  text-align: center;
 }
 
 /* FAQ */
@@ -732,9 +854,9 @@ import { GcButton } from '~/components/ui'
 }
 
 .faq-item {
-  background: var(--gc-card);
+  background: var(--gc-bg-secondary);
   border: 1px solid var(--gc-border);
-  border-radius: var(--gc-radius-lg);
+  border-radius: 12px;
   padding: 20px 24px;
 }
 
@@ -745,12 +867,13 @@ import { GcButton } from '~/components/ui'
   display: flex;
   justify-content: space-between;
   align-items: center;
+  color: var(--gc-text-primary);
 }
 
 .faq-item summary::after {
   content: '+';
   font-size: 20px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
 }
 
 .faq-item[open] summary::after {
@@ -760,14 +883,14 @@ import { GcButton } from '~/components/ui'
 .faq-item p {
   margin: 16px 0 0;
   font-size: 15px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   line-height: 1.6;
 }
 
 /* CTA */
 .cta {
   padding: clamp(64px, 10vw, 100px) 0;
-  background: var(--gc-accent);
+  background: var(--gc-primary);
   color: #fff;
 }
 
@@ -794,24 +917,11 @@ import { GcButton } from '~/components/ui'
   flex-wrap: wrap;
 }
 
-.cta__actions :deep(.gc-button--primary) {
-  background: #fff;
-  color: var(--gc-accent);
-}
-
-.cta__actions :deep(.gc-button--ghost) {
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
-}
-
-.cta__actions :deep(.gc-button--ghost:hover) {
-  background: rgba(255, 255, 255, 0.1);
-}
-
 /* Footer */
 .footer {
   padding: 32px 0;
   border-top: 1px solid var(--gc-border);
+  background: var(--gc-bg-primary);
 }
 
 .footer__inner {
@@ -835,6 +945,13 @@ import { GcButton } from '~/components/ui'
   align-items: center;
   gap: 8px;
   font-weight: 700;
+  color: var(--gc-text-primary);
+}
+
+.footer-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--gc-primary);
 }
 
 .footer__links {
@@ -845,18 +962,18 @@ import { GcButton } from '~/components/ui'
 }
 
 .footer__links a {
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   text-decoration: none;
   font-size: 14px;
 }
 
 .footer__links a:hover {
-  color: var(--gc-text);
+  color: var(--gc-text-primary);
 }
 
 .footer__copy {
   font-size: 14px;
-  color: var(--gc-text-muted);
+  color: var(--gc-text-secondary);
   margin: 0;
 }
 </style>

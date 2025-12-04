@@ -200,7 +200,7 @@ export function useAuth() {
   // Update profile (email)
   async function updateProfile(email: string) {
     try {
-      await apiClient.put('/auth/me', { email: email.trim() || null })
+      await apiClient.put('/auth/profile', { email: email.trim() || null })
       
       if (user.value) {
         user.value.email = email.trim() || undefined

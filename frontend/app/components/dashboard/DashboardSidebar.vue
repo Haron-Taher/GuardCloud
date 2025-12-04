@@ -2,7 +2,10 @@
   <aside class="sidebar">
     <!-- New Button -->
     <button class="new-button" @click="emit('newAction')">
-      <span class="new-icon">+</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
       <span>New</span>
     </button>
 
@@ -23,7 +26,9 @@
     <!-- Storage Usage -->
     <div class="storage-section">
       <div class="storage-header">
-        <span class="storage-icon">💾</span>
+        <svg class="storage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        </svg>
         <span class="storage-label">Storage</span>
       </div>
       
@@ -36,22 +41,8 @@
       </div>
       
       <div class="storage-text">
-        {{ formatSize(storageUsed) }} of {{ formatSize(storageLimit) }} used
+        {{ formatSize(storageUsed) }} of {{ formatSize(storageLimit) }}
       </div>
-      
-      <div v-if="storagePercentage > 80" class="storage-warning">
-        {{ storagePercentage > 95 ? 'Storage almost full!' : 'Running low on storage' }}
-      </div>
-    </div>
-
-    <!-- Footer Links -->
-    <div class="sidebar-footer">
-      <a href="#" class="footer-link" @click.prevent="emit('navigate', 'settings')">
-        ⚙️ Settings
-      </a>
-      <a href="#" class="footer-link" @click.prevent="emit('navigate', 'help')">
-        ❓ Help
-      </a>
     </div>
   </aside>
 </template>
@@ -73,8 +64,6 @@ const emit = defineEmits<{
 
 const navItems = [
   { id: 'drive', icon: '📁', label: 'My Drive' },
-  { id: 'shared', icon: '👥', label: 'Shared with me' },
-  { id: 'recent', icon: '🕐', label: 'Recent' },
   { id: 'starred', icon: '⭐', label: 'Starred' },
   { id: 'trash', icon: '🗑️', label: 'Trash' },
 ]
@@ -91,13 +80,15 @@ function formatSize(bytes: number) {
 
 <style scoped>
 .sidebar {
-  width: 240px;
+  width: 220px;
   background: var(--gc-bg-primary);
   border-right: 1px solid var(--gc-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   padding: 16px 12px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
 }
 
 /* New Button */
@@ -110,23 +101,22 @@ function formatSize(bytes: number) {
   background: var(--gc-primary);
   color: white;
   border: none;
-  border-radius: 24px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   margin-bottom: 20px;
   transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.new-button svg {
+  width: 20px;
+  height: 20px;
 }
 
 .new-button:hover {
   background: var(--gc-primary-hover);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-}
-
-.new-icon {
-  font-size: 20px;
-  font-weight: 300;
+  transform: translateY(-1px);
 }
 
 /* Navigation */
@@ -134,7 +124,7 @@ function formatSize(bytes: number) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .nav-item {
@@ -175,8 +165,7 @@ function formatSize(bytes: number) {
   margin-top: auto;
   padding: 16px;
   background: var(--gc-bg-secondary);
-  border-radius: 12px;
-  margin-bottom: 12px;
+  border-radius: 10px;
 }
 
 .storage-header {
@@ -187,13 +176,15 @@ function formatSize(bytes: number) {
 }
 
 .storage-icon {
-  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--gc-text-secondary);
 }
 
 .storage-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--gc-text-primary);
+  color: var(--gc-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -214,7 +205,7 @@ function formatSize(bytes: number) {
 }
 
 .storage-fill.warning {
-  background: #f59e0b;
+  background: var(--gc-warning);
 }
 
 .storage-fill.critical {
@@ -224,46 +215,6 @@ function formatSize(bytes: number) {
 .storage-text {
   font-size: 12px;
   color: var(--gc-text-secondary);
-}
-
-.storage-warning {
-  margin-top: 8px;
-  padding: 6px 10px;
-  background: rgba(245, 158, 11, 0.1);
-  border-radius: 6px;
-  font-size: 11px;
-  color: #d97706;
-  font-weight: 500;
-}
-
-.storage-fill.critical + .storage-text + .storage-warning,
-.storage-section:has(.storage-fill.critical) .storage-warning {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--gc-error);
-}
-
-/* Footer Links */
-.sidebar-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.footer-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  color: var(--gc-text-secondary);
-  text-decoration: none;
-  font-size: 13px;
-  border-radius: 6px;
-  transition: all 0.15s;
-}
-
-.footer-link:hover {
-  background: var(--gc-bg-tertiary);
-  color: var(--gc-text-primary);
 }
 
 /* Responsive */

@@ -61,14 +61,14 @@ const isButton = computed(() => !props.to && !props.href)
   text-decoration: none;
   cursor: pointer;
   border: 1px solid transparent;
-  border-radius: var(--gc-radius-md, 12px);
+  border-radius: 10px;
   transition: all 0.15s ease;
   outline: none;
   position: relative;
 }
 
 .gc-button:focus-visible {
-  box-shadow: 0 0 0 3px var(--gc-accent-light, rgba(11, 87, 208, 0.15));
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 .gc-button:active:not(:disabled) {
@@ -86,7 +86,7 @@ const isButton = computed(() => !props.to && !props.href)
 .gc-button--sm {
   padding: 6px 12px;
   font-size: 13px;
-  border-radius: var(--gc-radius-sm, 8px);
+  border-radius: 8px;
 }
 
 .gc-button--md {
@@ -96,7 +96,7 @@ const isButton = computed(() => !props.to && !props.href)
 .gc-button--lg {
   padding: 14px 24px;
   font-size: 16px;
-  border-radius: var(--gc-radius-lg, 16px);
+  border-radius: 12px;
 }
 
 .gc-button--icon-only.gc-button--sm { padding: 6px; }
@@ -105,36 +105,36 @@ const isButton = computed(() => !props.to && !props.href)
 
 /* Variants */
 .gc-button--primary {
-  background: var(--gc-accent, #0b57d0);
+  background: var(--gc-primary);
   color: #fff;
 }
 
 .gc-button--primary:hover:not(:disabled):not([disabled]) {
-  background: var(--gc-accent-hover, #0945a3);
+  background: var(--gc-primary-hover);
 }
 
 .gc-button--ghost {
   background: transparent;
-  color: var(--gc-text, #0b1220);
-  border-color: var(--gc-border, #e6e9ef);
+  color: var(--gc-text-primary);
+  border-color: var(--gc-border);
 }
 
 .gc-button--ghost:hover:not(:disabled):not([disabled]) {
-  background: var(--gc-card, #f5f7fb);
+  background: var(--gc-bg-tertiary);
 }
 
 .gc-button--outline {
   background: transparent;
-  color: var(--gc-accent, #0b57d0);
-  border-color: var(--gc-accent, #0b57d0);
+  color: var(--gc-primary);
+  border-color: var(--gc-primary);
 }
 
 .gc-button--outline:hover:not(:disabled):not([disabled]) {
-  background: var(--gc-accent-light, rgba(11, 87, 208, 0.1));
+  background: rgba(99, 102, 241, 0.1);
 }
 
 .gc-button--danger {
-  background: var(--gc-error, #ef4444);
+  background: var(--gc-error);
   color: #fff;
 }
 
@@ -163,7 +163,7 @@ const isButton = computed(() => !props.to && !props.href)
 }
 
 .gc-button--primary .gc-button__spinner { color: #fff; }
-.gc-button--ghost .gc-button__spinner { color: var(--gc-text); }
+.gc-button--ghost .gc-button__spinner { color: var(--gc-text-primary); }
 
 @keyframes spin {
   to { transform: rotate(360deg); }

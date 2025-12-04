@@ -3,7 +3,9 @@
     <!-- Logo -->
     <div class="topbar-left">
       <NuxtLink to="/dashboard" class="logo">
-        <span class="logo-icon">☁️</span>
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17"/>
+        </svg>
         <span class="logo-text">GuardCloud</span>
       </NuxtLink>
     </div>
@@ -11,7 +13,10 @@
     <!-- Search -->
     <div class="topbar-center">
       <div class="search-container">
-        <span class="search-icon">🔍</span>
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
         <input 
           ref="searchInput"
           type="text"
@@ -27,10 +32,20 @@
 
     <!-- Actions -->
     <div class="topbar-right">
+      <!-- Theme Toggle -->
+      <button class="icon-btn" @click="toggleTheme" :title="isDark ? 'Light mode' : 'Dark mode'">
+        <span v-if="isDark">☀️</span>
+        <span v-else>🌙</span>
+      </button>
+
       <!-- New Menu -->
       <div class="dropdown" ref="newDropdown">
-        <button class="action-btn new-btn" @click="toggleNewMenu">
-          <span>+ New</span>
+        <button class="action-btn" @click="toggleNewMenu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span class="btn-text">New</span>
         </button>
         <div v-if="showNewMenu" class="dropdown-menu">
           <button class="dropdown-item" @click="handleNewAction('folder')">
@@ -40,11 +55,6 @@
           <button class="dropdown-item" @click="handleNewAction('upload')">
             <span class="dropdown-icon">⬆️</span>
             Upload files
-          </button>
-          <div class="dropdown-divider"></div>
-          <button class="dropdown-item" @click="handleNewAction('upload-folder')">
-            <span class="dropdown-icon">📂</span>
-            Upload folder
           </button>
         </div>
       </div>
@@ -81,6 +91,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useTheme } from '~/composables/useTheme'
 
 const props = defineProps<{
   user: { username: string; email?: string }
@@ -97,6 +108,8 @@ const emit = defineEmits<{
   (e: 'activity'): void
 }>()
 
+const { isDark, toggleTheme, init: initTheme } = useTheme()
+
 const searchInput = ref<HTMLInputElement | null>(null)
 const showNewMenu = ref(false)
 const showUserMenu = ref(false)
@@ -105,6 +118,10 @@ const userDropdown = ref<HTMLElement | null>(null)
 
 const userInitial = computed(() => {
   return props.user.username?.charAt(0).toUpperCase() || 'U'
+})
+
+onMounted(() => {
+  initTheme()
 })
 
 function toggleNewMenu() {
@@ -203,12 +220,14 @@ onUnmounted(() => {
 .logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-decoration: none;
 }
 
 .logo-icon {
-  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  color: var(--gc-primary);
 }
 
 .logo-text {
@@ -220,7 +239,7 @@ onUnmounted(() => {
 /* Search */
 .topbar-center {
   flex: 1;
-  max-width: 600px;
+  max-width: 560px;
   padding: 0 24px;
 }
 
@@ -233,7 +252,9 @@ onUnmounted(() => {
 .search-icon {
   position: absolute;
   left: 14px;
-  font-size: 16px;
+  width: 18px;
+  height: 18px;
+  color: var(--gc-text-secondary);
   pointer-events: none;
 }
 
@@ -241,7 +262,7 @@ onUnmounted(() => {
   width: 100%;
   padding: 10px 80px 10px 42px;
   border: 1px solid var(--gc-border);
-  border-radius: 24px;
+  border-radius: 10px;
   background: var(--gc-bg-secondary);
   color: var(--gc-text-primary);
   font-size: 14px;
@@ -287,22 +308,46 @@ onUnmounted(() => {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--gc-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  background: var(--gc-bg-tertiary);
+  border-color: var(--gc-primary);
 }
 
 .action-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 8px;
+  padding: 10px 16px;
   background: var(--gc-primary);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.action-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .action-btn:hover {
@@ -313,7 +358,7 @@ onUnmounted(() => {
   width: 40px;
   height: 40px;
   padding: 0;
-  background: var(--gc-bg-tertiary);
+  background: var(--gc-primary);
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -321,14 +366,13 @@ onUnmounted(() => {
 }
 
 .user-btn:hover {
-  background: var(--gc-bg-secondary);
-  box-shadow: 0 0 0 2px var(--gc-border);
+  transform: scale(1.05);
 }
 
 .user-avatar {
   font-size: 16px;
   font-weight: 600;
-  color: var(--gc-text-primary);
+  color: white;
 }
 
 /* Dropdown */
@@ -343,8 +387,8 @@ onUnmounted(() => {
   min-width: 200px;
   background: var(--gc-bg-primary);
   border: 1px solid var(--gc-border);
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  box-shadow: var(--gc-shadow-lg);
   padding: 6px;
   z-index: 200;
   animation: dropdownFadeIn 0.15s ease-out;
@@ -367,7 +411,7 @@ onUnmounted(() => {
 }
 
 .dropdown-header {
-  padding: 10px 12px;
+  padding: 12px;
 }
 
 .user-name {
@@ -402,7 +446,7 @@ onUnmounted(() => {
   font-size: 14px;
   text-align: left;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 8px;
   transition: background-color 0.15s;
 }
 
@@ -442,13 +486,12 @@ onUnmounted(() => {
     display: none;
   }
   
-  .new-btn span {
+  .btn-text {
     display: none;
   }
   
-  .new-btn::after {
-    content: '+';
-    font-size: 20px;
+  .action-btn {
+    padding: 10px;
   }
 }
 </style>
