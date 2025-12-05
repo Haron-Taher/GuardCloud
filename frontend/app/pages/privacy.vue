@@ -644,6 +644,18 @@ const lastUpdated = 'December 5, 2025'
   margin-bottom: 0;
 }
 
+.section .btn-primary {
+  background: var(--gc-primary);
+  color: white;
+  border: 1px solid var(--gc-primary);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.section .btn-primary:hover {
+  background: var(--gc-primary-hover);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
 /* Footer */
 .footer {
   padding: 32px 0;
