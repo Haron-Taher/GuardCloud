@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Request, Header, Response, Query
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Request, Header, Response, Query, Form
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -258,9 +258,11 @@ async def upload_file(
     request: Request,
     file: UploadFile = File(...),
     folder_id: Optional[int] = Query(None),
+    original_mime_type: Optional[str] = Form(None),
+    encrypted: Optional[str] = Form(None),
     current_user: str = Depends(get_current_user),
 ):
-    """Upload a file."""
+    """Upload a file (supports end-to-end encrypted files)."""
     # Check storage limit
     current_usage = get_storage_used(current_user)
     contents = await file.read()
@@ -289,8 +291,12 @@ async def upload_file(
 
     stored_path.write_bytes(contents)
 
-    # Detect mime type
-    mime_type, _ = mimetypes.guess_type(file.filename)
+    # For encrypted files, use the original mime type sent by frontend
+    # For non-encrypted files, detect mime type from filename
+    if encrypted == "true" and original_mime_type:
+        mime_type = original_mime_type
+    else:
+        mime_type, _ = mimetypes.guess_type(file.filename)
 
     file_id = save_file_metadata(
         owner=current_user,
@@ -307,7 +313,7 @@ async def upload_file(
         ip_address=get_client_ip(request)
     )
 
-    return {"message": "File uploaded", "file_id": file_id}
+    return {"message": "File uploaded", "file_id": file_id, "encrypted": encrypted == "true"}
 
 
 @app.get("/files/{file_id}")
@@ -642,24 +648,42 @@ async def delete_folder_endpoint(
 async def create_share(
     file_id: int,
     request: Request,
+    file: Optional[UploadFile] = File(None),
+    password: Optional[str] = Form(None),
+    expires_in_days: Optional[int] = Form(None),
+    max_downloads: Optional[int] = Form(None),
     current_user: str = Depends(get_current_user)
 ):
-    """Create a share link for a file."""
-    data = await request.json()
-    password = data.get("password")
-    expires_in_days = data.get("expires_in_days")
-    max_downloads = data.get("max_downloads")
-
+    """Create a share link for a file.
+    
+    If a decrypted file is provided, it will be stored separately for sharing.
+    This allows E2E encrypted files to be shared with recipients who don't have the key.
+    """
     row = get_file_by_id(file_id, current_user)
     if not row:
         raise HTTPException(status_code=404, detail="File not found")
+
+    # If a decrypted file is provided, store it for sharing
+    share_stored_path = None
+    if file:
+        import uuid
+        shares_dir = STORAGE_ROOT / "shares" / current_user
+        shares_dir.mkdir(parents=True, exist_ok=True)
+        
+        share_filename = f"{uuid.uuid4().hex}_{row['filename']}"
+        share_stored_path = shares_dir / share_filename
+        
+        contents = await file.read()
+        share_stored_path.write_bytes(contents)
+        share_stored_path = str(share_stored_path)
 
     password_hash = hash_it(password) if password else None
     token = create_share_link(
         file_id, current_user,
         password_hash=password_hash,
         expires_in_days=expires_in_days,
-        max_downloads=max_downloads
+        max_downloads=max_downloads,
+        share_stored_path=share_stored_path
     )
 
     log_activity(

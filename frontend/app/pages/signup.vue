@@ -90,8 +90,13 @@ const onSubmit = async () => {
   <div class="auth-page">
     <!-- Theme Toggle -->
     <button class="theme-toggle" @click="toggleTheme" :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
-      <span v-if="isDark">☀️</span>
-      <span v-else>🌙</span>
+      <svg v-if="isDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="5"/>
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
+      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
     </button>
 
     <div class="auth-container">
@@ -272,16 +277,22 @@ const onSubmit = async () => {
   border: 1px solid var(--gc-border);
   background: var(--gc-bg-primary);
   cursor: pointer;
-  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  color: var(--gc-text-secondary);
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
 }
 
 .theme-toggle:hover {
   background: var(--gc-bg-tertiary);
   border-color: var(--gc-primary);
+  color: var(--gc-text-primary);
 }
 
 .auth-container {

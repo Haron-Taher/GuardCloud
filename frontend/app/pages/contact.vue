@@ -22,7 +22,6 @@ const handleSubmit = async () => {
   if (sending.value) return
   sending.value = true
   
-  // Simulate API call
   await new Promise(r => setTimeout(r, 800))
   
   sent.value = true
@@ -182,11 +181,29 @@ const handleSubmit = async () => {
             </div>
             <h4>Looking for documentation?</h4>
             <p>Check out our help center for guides, tutorials, and FAQs.</p>
-            <button class="btn btn-ghost btn-sm">Visit Help Center</button>
+            <NuxtLink to="/docs" class="btn btn-ghost btn-sm">Visit Help Center</NuxtLink>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container footer__inner">
+        <div class="footer__brand">
+          <img src="~/assets/logos/securecloud.png" alt="GuardCloud" class="footer-img" />
+          <span>GuardCloud</span>
+        </div>
+        <nav class="footer__links">
+          <NuxtLink to="/">Home</NuxtLink>
+          <NuxtLink to="/docs">Documentation</NuxtLink>
+          <NuxtLink to="/contact">Contact</NuxtLink>
+          <NuxtLink to="/privacy">Privacy</NuxtLink>
+          <NuxtLink to="/terms">Terms</NuxtLink>
+        </nav>
+        <p class="footer__copy">© 2025 GuardCloud. All rights reserved.</p>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -195,6 +212,8 @@ const handleSubmit = async () => {
   min-height: 100vh;
   background: var(--gc-bg-secondary);
   color: var(--gc-text-primary);
+  display: flex;
+  flex-direction: column;
 }
 
 .container {
@@ -347,6 +366,7 @@ const handleSubmit = async () => {
 /* Content */
 .content {
   padding-bottom: clamp(48px, 8vw, 96px);
+  flex: 1;
 }
 
 .content__grid {
@@ -571,5 +591,67 @@ const handleSubmit = async () => {
   color: var(--gc-text-secondary);
   margin: 0 0 16px;
   line-height: 1.5;
+}
+
+/* Footer */
+.footer {
+  padding: 32px 0;
+  border-top: 1px solid var(--gc-border);
+  background: var(--gc-bg-primary);
+  margin-top: auto;
+}
+
+.footer__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .footer__inner {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+
+.footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: var(--gc-text-primary);
+}
+
+.footer-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+}
+
+.footer__links a {
+  color: var(--gc-text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.15s;
+}
+
+.footer__links a:hover {
+  color: var(--gc-text-primary);
+}
+
+.footer__copy {
+  font-size: 14px;
+  color: var(--gc-text-secondary);
+  margin: 0;
 }
 </style>

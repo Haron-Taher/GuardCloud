@@ -1,5 +1,6 @@
 import { ref, shallowRef } from 'vue'
 import apiClient from '~/utils/apiClient'
+import { cryptoManager, type EncryptionMetadata, arrayBufferToBase64, base64ToArrayBuffer } from '~/utils/crypto'
 
 interface FileItem {
   id: number
@@ -61,6 +62,7 @@ const currentFolderId = ref<number | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const uploadProgress = ref(0)
+const isUploading = ref(false)
 const storageStats = ref<StorageStats | null>(null)
 
 // Cache
@@ -68,8 +70,77 @@ const CACHE_DURATION = 30000
 let lastFetch = 0
 let lastFolderKey = ''
 
+/**
+ * Pack encrypted data with metadata for storage
+ * Format: [4 bytes: metadata length][metadata JSON][encrypted data]
+ */
+function packEncryptedData(encryptedData: ArrayBuffer, metadata: EncryptionMetadata): ArrayBuffer {
+  const metadataJson = JSON.stringify(metadata)
+  const metadataBytes = new TextEncoder().encode(metadataJson)
+  
+  // Create header with metadata length
+  const header = new ArrayBuffer(4)
+  new DataView(header).setUint32(0, metadataBytes.length, true) // little-endian
+  
+  // Combine: header + metadata + encrypted data
+  const result = new Uint8Array(4 + metadataBytes.length + encryptedData.byteLength)
+  result.set(new Uint8Array(header), 0)
+  result.set(metadataBytes, 4)
+  result.set(new Uint8Array(encryptedData), 4 + metadataBytes.length)
+  
+  return result.buffer
+}
+
+/**
+ * Unpack encrypted data and metadata from storage
+ */
+function unpackEncryptedData(data: ArrayBuffer): { encryptedData: ArrayBuffer; metadata: EncryptionMetadata } {
+  const view = new DataView(data)
+  const metadataLength = view.getUint32(0, true) // little-endian
+  
+  // Extract metadata
+  const metadataBytes = new Uint8Array(data, 4, metadataLength)
+  const metadataJson = new TextDecoder().decode(metadataBytes)
+  const metadata = JSON.parse(metadataJson) as EncryptionMetadata
+  
+  // Extract encrypted data
+  const encryptedData = data.slice(4 + metadataLength)
+  
+  return { encryptedData, metadata }
+}
+
+/**
+ * Check if data is encrypted (has our header format)
+ */
+function isEncryptedData(data: ArrayBuffer): boolean {
+  if (data.byteLength < 10) return false
+  
+  try {
+    const view = new DataView(data)
+    const metadataLength = view.getUint32(0, true)
+    
+    // Sanity check: metadata shouldn't be larger than 1KB
+    if (metadataLength > 1024 || metadataLength < 10) return false
+    
+    // Try to parse metadata
+    const metadataBytes = new Uint8Array(data, 4, metadataLength)
+    const metadataJson = new TextDecoder().decode(metadataBytes)
+    const metadata = JSON.parse(metadataJson)
+    
+    // Check for required fields
+    return metadata.iv && metadata.keyIv && metadata.wrappedKey && metadata.version
+  } catch {
+    return false
+  }
+}
+
 export function useFiles() {
   const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+
+  // Check if encryption is available
+  function isEncryptionReady(): boolean {
+    return cryptoManager.isInitialized()
+  }
 
   // Fetch files and folders for current directory
   async function fetchFiles(folderId: number | null = null, force = false) {
@@ -126,7 +197,7 @@ export function useFiles() {
     }
   }
 
-  // Upload file
+  // Upload file with encryption
   async function upload(file: File, folderId: number | null = null, onProgress?: (percent: number) => void) {
     if (!file) {
       error.value = 'No file selected'
@@ -143,28 +214,63 @@ export function useFiles() {
       return false
     }
 
+    // Check if encryption is ready
+    if (!isEncryptionReady()) {
+      error.value = 'Encryption not initialized. Please log in again.'
+      return false
+    }
+
     loading.value = true
+    isUploading.value = true
     error.value = null
-    uploadProgress.value = 0
+    uploadProgress.value = 5 // Start at 5% to show activity
 
     try {
+      // Read file as ArrayBuffer
+      const fileData = await file.arrayBuffer()
+      uploadProgress.value = 10
+      
+      // Encrypt the file
+      console.log('[Upload] Encrypting file:', file.name)
+      const { encryptedData, metadata } = await cryptoManager.encryptFile(fileData)
+      uploadProgress.value = 30
+      console.log('[Upload] File encrypted, metadata:', metadata)
+      
+      // Pack encrypted data with metadata
+      const packedData = packEncryptedData(encryptedData, metadata)
+      console.log('[Upload] Original size:', fileData.byteLength, 'Encrypted size:', packedData.byteLength)
+      
+      // Create encrypted blob
+      const encryptedBlob = new Blob([packedData], { type: 'application/octet-stream' })
+      
+      // Create form data with encrypted file
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', encryptedBlob, file.name)
+      
+      // Also send original mime type for later decryption
+      formData.append('original_mime_type', file.type || 'application/octet-stream')
+      formData.append('encrypted', 'true')
 
       const params = folderId ? { folder_id: folderId } : {}
       
+      uploadProgress.value = 40
+
       await apiClient.post('/files/upload', formData, {
         params,
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (e) => {
           if (e.total) {
-            const percent = Math.round((e.loaded / e.total) * 100)
-            uploadProgress.value = percent
-            onProgress?.(percent)
+            // Map 40-100% to upload progress
+            const percent = 40 + Math.round((e.loaded / e.total) * 60)
+            uploadProgress.value = Math.min(percent, 99)
+            onProgress?.(uploadProgress.value)
           }
         }
       })
 
+      uploadProgress.value = 100
+      console.log('[Upload] Upload complete')
+      
       // Refresh file list
       await fetchFiles(currentFolderId.value, true)
       // Refresh storage stats
@@ -172,61 +278,182 @@ export function useFiles() {
       
       return true
     } catch (err: any) {
+      console.error('[Upload] Error:', err)
       if (err.response?.status === 413) {
         error.value = 'Storage limit exceeded'
+      } else if (err.name === 'OperationError') {
+        error.value = 'Encryption failed. Please try again.'
       } else {
         error.value = err.response?.data?.detail || 'Upload failed'
       }
       return false
     } finally {
       loading.value = false
-      uploadProgress.value = 0
+      isUploading.value = false
+      // Reset progress after a delay
+      setTimeout(() => {
+        uploadProgress.value = 0
+      }, 1000)
     }
   }
 
-  // Download file
+  // Download file with decryption
   async function download(file: FileItem) {
+    // Check if encryption is ready
+    if (!isEncryptionReady()) {
+      error.value = 'Encryption not initialized. Please log in again.'
+      return
+    }
+
     try {
+      console.log('[Download] Downloading file:', file.filename)
+      
       const res = await apiClient.get(`/files/${file.id}/download`, {
-        responseType: 'blob'
+        responseType: 'arraybuffer'
       })
 
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.download = file.filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
+      // Unpack and decrypt
+      const packedData = res.data as ArrayBuffer
+      console.log('[Download] Received data, size:', packedData.byteLength)
+      
+      // Check if data is encrypted
+      if (isEncryptedData(packedData)) {
+        try {
+          const { encryptedData, metadata } = unpackEncryptedData(packedData)
+          console.log('[Download] Decrypting with metadata:', metadata)
+          
+          const decryptedData = await cryptoManager.decryptFile(encryptedData, metadata)
+          console.log('[Download] Decrypted size:', decryptedData.byteLength)
+          
+          // Create download with decrypted data
+          const mimeType = file.mime_type || 'application/octet-stream'
+          const url = window.URL.createObjectURL(new Blob([decryptedData], { type: mimeType }))
+          const link = document.createElement('a')
+          link.href = url
+          link.download = file.filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+          
+          console.log('[Download] Download complete')
+        } catch (decryptError) {
+          console.error('[Download] Decryption failed:', decryptError)
+          error.value = 'Failed to decrypt file. The file may be corrupted or encrypted with a different key.'
+        }
+      } else {
+        // File is not encrypted (legacy), download as-is
+        console.log('[Download] File is not encrypted, downloading as-is')
+        const url = window.URL.createObjectURL(new Blob([packedData]))
+        const link = document.createElement('a')
+        link.href = url
+        link.download = file.filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+      }
     } catch (err: any) {
+      console.error('[Download] Error:', err)
       error.value = err.response?.data?.detail || 'Download failed'
     }
   }
 
-  // Preview file (for images, text, etc.)
+  // Get decrypted file data (for sharing)
+  async function getDecryptedFileData(file: FileItem): Promise<{ data: ArrayBuffer; mimeType: string } | null> {
+    if (!isEncryptionReady()) {
+      return null
+    }
+
+    try {
+      const res = await apiClient.get(`/files/${file.id}/download`, {
+        responseType: 'arraybuffer'
+      })
+
+      const packedData = res.data as ArrayBuffer
+      
+      if (isEncryptedData(packedData)) {
+        const { encryptedData, metadata } = unpackEncryptedData(packedData)
+        const decryptedData = await cryptoManager.decryptFile(encryptedData, metadata)
+        return {
+          data: decryptedData,
+          mimeType: file.mime_type || 'application/octet-stream'
+        }
+      } else {
+        // Not encrypted
+        return {
+          data: packedData,
+          mimeType: file.mime_type || 'application/octet-stream'
+        }
+      }
+    } catch (err) {
+      console.error('[getDecryptedFileData] Error:', err)
+      return null
+    }
+  }
+
+  // Preview file (for images, text, etc.) with decryption
   async function preview(file: FileItem): Promise<{ url?: string; content?: string; mime_type?: string } | null> {
+    // Check if encryption is ready
+    if (!isEncryptionReady()) {
+      error.value = 'Encryption not initialized. Please log in again.'
+      return null
+    }
+
     try {
       const mime = file.mime_type || ''
       
-      // For images and PDFs, get blob URL
-      if (mime.startsWith('image/') || mime === 'application/pdf') {
-        const res = await apiClient.get(`/files/${file.id}/preview`, {
-          responseType: 'blob'
-        })
-        const url = window.URL.createObjectURL(new Blob([res.data], { type: mime }))
-        return { url, mime_type: mime }
-      }
+      console.log('[Preview] Loading preview for:', file.filename, 'MIME:', mime)
       
-      // For text files, get content
-      if (mime.startsWith('text/') || ['application/json', 'application/javascript'].includes(mime)) {
-        const res = await apiClient.get(`/files/${file.id}/preview`)
-        return { content: res.data.content, mime_type: res.data.mime_type }
-      }
+      // Get encrypted data
+      const res = await apiClient.get(`/files/${file.id}/download`, {
+        responseType: 'arraybuffer'
+      })
       
-      return null
+      const packedData = res.data as ArrayBuffer
+      
+      // Check if data is encrypted
+      if (isEncryptedData(packedData)) {
+        try {
+          // Decrypt the file
+          const { encryptedData, metadata } = unpackEncryptedData(packedData)
+          const decryptedData = await cryptoManager.decryptFile(encryptedData, metadata)
+          
+          // For images and PDFs, create blob URL
+          if (mime.startsWith('image/') || mime === 'application/pdf') {
+            const url = window.URL.createObjectURL(new Blob([decryptedData], { type: mime }))
+            return { url, mime_type: mime }
+          }
+          
+          // For text files, decode content
+          if (mime.startsWith('text/') || ['application/json', 'application/javascript'].includes(mime)) {
+            const content = new TextDecoder().decode(decryptedData)
+            return { content, mime_type: mime }
+          }
+          
+          // For other types, create generic blob URL
+          const url = window.URL.createObjectURL(new Blob([decryptedData], { type: mime }))
+          return { url, mime_type: mime }
+        } catch (decryptError) {
+          console.error('[Preview] Decryption failed:', decryptError)
+          return null
+        }
+      } else {
+        // Not encrypted
+        if (mime.startsWith('image/') || mime === 'application/pdf') {
+          const url = window.URL.createObjectURL(new Blob([packedData], { type: mime }))
+          return { url, mime_type: mime }
+        }
+        
+        if (mime.startsWith('text/') || ['application/json', 'application/javascript'].includes(mime)) {
+          const content = new TextDecoder().decode(packedData)
+          return { content, mime_type: mime }
+        }
+        
+        return null
+      }
     } catch (err: any) {
-      console.error('Preview error:', err)
+      console.error('[Preview] Error:', err)
       return null
     }
   }
@@ -362,16 +589,44 @@ export function useFiles() {
     }
   }
 
-  // Create share link
+  // Create share link - uploads decrypted version for sharing
   async function createShareLink(fileId: number, options: {
     password?: string
     expires_in_days?: number
     max_downloads?: number
   } = {}) {
     try {
-      const res = await apiClient.post(`/files/${fileId}/share`, options)
+      // Get the file info
+      const file = files.value.find(f => f.id === fileId)
+      if (!file) {
+        error.value = 'File not found'
+        return null
+      }
+
+      // Create form data
+      const formData = new FormData()
+      
+      // If encryption is ready, get decrypted file data for sharing
+      if (isEncryptionReady()) {
+        const decrypted = await getDecryptedFileData(file)
+        if (decrypted) {
+          const blob = new Blob([decrypted.data], { type: decrypted.mimeType })
+          formData.append('file', blob, file.filename)
+          console.log('[Share] Uploading decrypted file for sharing')
+        }
+      }
+      
+      if (options.password) formData.append('password', options.password)
+      if (options.expires_in_days) formData.append('expires_in_days', String(options.expires_in_days))
+      if (options.max_downloads) formData.append('max_downloads', String(options.max_downloads))
+
+      const res = await apiClient.post(`/files/${fileId}/share`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      
       return res.data
     } catch (err: any) {
+      console.error('[Share] Error:', err)
       error.value = err.response?.data?.detail || 'Could not create share link'
       return null
     }
@@ -440,7 +695,11 @@ export function useFiles() {
     loading,
     error,
     uploadProgress,
+    isUploading,
     storageStats,
+    
+    // Encryption status
+    isEncryptionReady,
     
     // File operations
     fetchFiles,
@@ -448,6 +707,7 @@ export function useFiles() {
     fetchTrash,
     upload,
     download,
+    getDecryptedFileData,
     preview,
     renameFile,
     moveFile,

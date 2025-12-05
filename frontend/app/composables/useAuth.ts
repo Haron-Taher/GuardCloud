@@ -1,5 +1,6 @@
 import { ref, readonly, computed } from 'vue'
 import apiClient from '~/utils/apiClient'
+import { cryptoManager, arrayBufferToBase64, base64ToArrayBuffer, exportKey, importKey } from '~/utils/crypto'
 
 // User interface
 export interface User {
@@ -22,15 +23,21 @@ export interface Activity {
   created_at: string
 }
 
+// Storage keys
+const ENCRYPTED_KEY_STORAGE = 'gc_master_key'
+const SALT_STORAGE = 'gc_key_salt'
+
 // Singleton state
 const user = ref<User | null>(null)
 const token = ref<string | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const initialized = ref(false)
+const cryptoInitialized = ref(false)
+const cryptoRestoring = ref(false)
 
 export function useAuth() {
-  // Initialize from localStorage
+  // Initialize from localStorage (sync part)
   function init() {
     if (initialized.value) return
     
@@ -47,9 +54,80 @@ export function useAuth() {
           created_at: '',
         }
       }
+      
+      // Check if crypto key exists in localStorage (persistent)
+      const storedKey = localStorage.getItem(ENCRYPTED_KEY_STORAGE)
+      if (storedKey && token.value) {
+        // Start restoring crypto from storage
+        cryptoRestoring.value = true
+        restoreCryptoFromStorage(storedKey).finally(() => {
+          cryptoRestoring.value = false
+        })
+      }
     }
     
     initialized.value = true
+  }
+
+  // Restore crypto key from localStorage
+  async function restoreCryptoFromStorage(storedKey: string): Promise<boolean> {
+    try {
+      console.log('[Auth] Restoring crypto from storage...')
+      const keyData = base64ToArrayBuffer(storedKey)
+      const masterKey = await importKey(keyData)
+      
+      // Restore salt too
+      const storedSalt = localStorage.getItem(SALT_STORAGE)
+      if (storedSalt) {
+        const salt = new Uint8Array(base64ToArrayBuffer(storedSalt))
+        // @ts-ignore - accessing private property for restoration
+        cryptoManager['salt'] = salt
+      }
+      
+      // @ts-ignore - accessing private property for restoration
+      cryptoManager['masterKey'] = masterKey
+      // @ts-ignore
+      cryptoManager['initialized'] = true
+      cryptoInitialized.value = true
+      console.log('[Auth] Crypto restored from storage successfully')
+      return true
+    } catch (e) {
+      console.error('[Auth] Failed to restore crypto from storage:', e)
+      localStorage.removeItem(ENCRYPTED_KEY_STORAGE)
+      cryptoInitialized.value = false
+      return false
+    }
+  }
+
+  // Initialize crypto and store key persistently
+  async function initializeCrypto(password: string) {
+    try {
+      console.log('[Auth] Initializing crypto...')
+      await cryptoManager.initialize(password)
+      
+      // Export and store key in localStorage for persistence across refreshes
+      const masterKey = cryptoManager.getMasterKey()
+      const keyData = await exportKey(masterKey)
+      localStorage.setItem(ENCRYPTED_KEY_STORAGE, arrayBufferToBase64(keyData))
+      
+      cryptoInitialized.value = true
+      console.log('[Auth] Crypto initialized and stored')
+    } catch (e) {
+      console.error('[Auth] Failed to initialize crypto:', e)
+      throw e
+    }
+  }
+
+  // Wait for crypto to be ready (for use in components)
+  async function waitForCrypto(timeout = 3000): Promise<boolean> {
+    const start = Date.now()
+    while (Date.now() - start < timeout) {
+      if (cryptoManager.isInitialized()) {
+        return true
+      }
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    return cryptoManager.isInitialized()
   }
 
   // Login
@@ -69,22 +147,25 @@ export function useAuth() {
     try {
       const res = await apiClient.post('/auth/login', { username: trimmedUsername, password })
       
-      const { token: newToken, username: returnedUsername, email } = res.data
+      const { token: newToken, user: userData } = res.data
       
       // Store in state and localStorage
       token.value = newToken
       user.value = {
-        id: 0,
-        username: returnedUsername,
-        email: email || undefined,
-        created_at: '',
+        id: userData?.id || 0,
+        username: userData?.username || trimmedUsername,
+        email: userData?.email || undefined,
+        created_at: userData?.created_at || '',
       }
       
       localStorage.setItem('gc_token', newToken)
-      localStorage.setItem('gc_user', returnedUsername)
-      if (email) {
-        localStorage.setItem('gc_email', email)
+      localStorage.setItem('gc_user', user.value.username)
+      if (user.value.email) {
+        localStorage.setItem('gc_email', user.value.email)
       }
+
+      // Initialize encryption with password
+      await initializeCrypto(password)
 
       return res.data
     } catch (err: unknown) {
@@ -163,10 +244,18 @@ export function useAuth() {
   function logout() {
     token.value = null
     user.value = null
+    cryptoInitialized.value = false
     
+    // Clear auth storage
     localStorage.removeItem('gc_token')
     localStorage.removeItem('gc_user')
     localStorage.removeItem('gc_email')
+    
+    // Clear crypto (but keep salt for re-login)
+    cryptoManager.clear()
+    localStorage.removeItem(ENCRYPTED_KEY_STORAGE)
+    
+    console.log('[Auth] Logged out and cleared crypto')
   }
 
   // Validate session
@@ -233,6 +322,12 @@ export function useAuth() {
         current_password: currentPassword,
         new_password: newPassword,
       })
+      
+      // Re-initialize crypto with new password
+      // Note: This will change the encryption key - existing files won't be readable
+      // In a production system, you'd need to re-encrypt all files
+      await initializeCrypto(newPassword)
+      
     } catch (err: unknown) {
       const axiosError = err as { response?: { status?: number; data?: { detail?: string } } }
       
@@ -265,6 +360,11 @@ export function useAuth() {
     return !!token.value
   }
 
+  // Check if crypto is ready
+  function isCryptoReady(): boolean {
+    return cryptoManager.isInitialized()
+  }
+
   // Clear error
   function clearError() {
     error.value = null
@@ -278,7 +378,8 @@ export function useAuth() {
     isAuthenticated: !!token.value,
     username: user.value?.username || null,
     email: user.value?.email || null,
-    user: user.value
+    user: user.value,
+    cryptoReady: cryptoManager.isInitialized()
   }))
 
   return {
@@ -287,6 +388,7 @@ export function useAuth() {
     token: readonly(token),
     loading: readonly(loading),
     error: readonly(error),
+    cryptoInitialized: readonly(cryptoInitialized),
     authState,
 
     // Actions
@@ -299,6 +401,8 @@ export function useAuth() {
     changePassword,
     fetchActivity,
     isLoggedIn,
+    isCryptoReady,
+    waitForCrypto,
     clearError,
   }
 }

@@ -355,9 +355,10 @@ onMounted(() => {
           <a href="#features">Features</a>
           <a href="#security">Security</a>
           <a href="#pricing">Pricing</a>
+          <NuxtLink to="/docs">Documentation</NuxtLink>
           <NuxtLink to="/contact">Contact</NuxtLink>
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
+          <NuxtLink to="/privacy">Privacy</NuxtLink>
+          <NuxtLink to="/terms">Terms</NuxtLink>
         </nav>
         <p class="footer__copy">© 2025 GuardCloud. All rights reserved.</p>
       </div>

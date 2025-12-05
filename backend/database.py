@@ -86,12 +86,20 @@ def Initialize_db():
             expires_at DATETIME,
             max_downloads INTEGER,
             download_count INTEGER DEFAULT 0,
+            share_stored_path TEXT,
             created_by TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (file_id) REFERENCES files(id)
         )
         """
     )
+    
+    # Add share_stored_path column if it doesn't exist (migration)
+    try:
+        cursor.execute("ALTER TABLE share_links ADD COLUMN share_stored_path TEXT")
+        conn.commit()
+    except:
+        pass  # Column already exists
 
     # Activity log table
     cursor.execute(
@@ -621,7 +629,7 @@ def get_folder_path(folder_id, owner):
 
 # ============== Share Functions ==============
 
-def create_share_link(file_id, created_by, password_hash=None, expires_in_days=None, max_downloads=None):
+def create_share_link(file_id, created_by, password_hash=None, expires_in_days=None, max_downloads=None, share_stored_path=None):
     """Create a share link for a file."""
     token = secrets.token_urlsafe(32)
     expires_at = None
@@ -632,9 +640,9 @@ def create_share_link(file_id, created_by, password_hash=None, expires_in_days=N
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """INSERT INTO share_links (file_id, token, password_hash, expires_at, max_downloads, created_by)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        (file_id, token, password_hash, expires_at, max_downloads, created_by),
+        """INSERT INTO share_links (file_id, token, password_hash, expires_at, max_downloads, share_stored_path, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (file_id, token, password_hash, expires_at, max_downloads, share_stored_path, created_by),
     )
     conn.commit()
     conn.close()
@@ -656,6 +664,8 @@ def get_share_link(token):
     conn.close()
     
     if row:
+        # Use share_stored_path if available, otherwise fall back to original file path
+        stored_path = row["share_stored_path"] if row["share_stored_path"] else row["stored_path"]
         return {
             "id": row["id"],
             "file_id": row["file_id"],
@@ -667,8 +677,9 @@ def get_share_link(token):
             "download_count": row["download_count"],
             "filename": row["filename"],
             "size": row["size"],
-            "stored_path": row["stored_path"],
+            "stored_path": stored_path,
             "mime_type": row["mime_type"],
+            "share_stored_path": row["share_stored_path"],
         }
     return None
 

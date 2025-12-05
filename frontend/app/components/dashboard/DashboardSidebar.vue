@@ -24,6 +24,18 @@
       </button>
     </nav>
 
+    <!-- Encryption Status -->
+    <div class="encryption-status" :class="{ active: encryptionActive }">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path v-if="encryptionActive" d="M9 12l2 2 4-4"/>
+      </svg>
+      <div class="encryption-text">
+        <span class="encryption-label">{{ encryptionActive ? 'End-to-end encrypted' : 'Encryption inactive' }}</span>
+        <span class="encryption-sublabel">{{ encryptionActive ? 'Your files are secure' : 'Please log in again' }}</span>
+      </div>
+    </div>
+
     <!-- Storage Usage -->
     <div class="storage-section">
       <div class="storage-header">
@@ -58,6 +70,7 @@ const props = defineProps<{
   activeSection: string
   storageUsed: number
   storageLimit: number
+  encryptionActive?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -180,9 +193,58 @@ function formatSize(bytes: number) {
   flex-shrink: 0;
 }
 
+/* Encryption Status */
+.encryption-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--gc-bg-secondary);
+  border-radius: 10px;
+  border: 1px solid var(--gc-border);
+  margin-top: auto;
+  margin-bottom: 12px;
+}
+
+.encryption-status svg {
+  width: 22px;
+  height: 22px;
+  color: var(--gc-text-secondary);
+  flex-shrink: 0;
+}
+
+.encryption-status.active {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.encryption-status.active svg {
+  color: #10b981;
+}
+
+.encryption-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.encryption-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gc-text-primary);
+}
+
+.encryption-status.active .encryption-label {
+  color: #10b981;
+}
+
+.encryption-sublabel {
+  font-size: 11px;
+  color: var(--gc-text-secondary);
+}
+
 /* Storage Section */
 .storage-section {
-  margin-top: auto;
   padding: 16px;
   background: var(--gc-bg-secondary);
   border-radius: 12px;

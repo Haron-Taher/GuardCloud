@@ -20,6 +20,7 @@
         :activeSection="activeSection"
         :storageUsed="storageStats?.used || 0"
         :storageLimit="storageStats?.limit || 15 * 1024 * 1024 * 1024"
+        :encryptionActive="encryptionReady"
         @navigate="navigateSection"
         @newAction="showNewFolderDialog"
       />
@@ -85,9 +86,14 @@
 
         <!-- Upload Progress -->
         <Transition name="slide-down">
-          <div v-if="uploadProgress > 0 && uploadProgress < 100" class="upload-progress">
+          <div v-if="isUploading" class="upload-progress">
             <div class="progress-bar" :style="{ width: `${uploadProgress}%` }"></div>
-            <span class="progress-text">Uploading... {{ uploadProgress }}%</span>
+            <span class="progress-text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Encrypting & uploading... {{ uploadProgress }}%
+            </span>
           </div>
         </Transition>
 
@@ -440,11 +446,14 @@ interface FolderItem {
 const router = useRouter()
 const { authState, logout, fetchProfile } = useAuth()
 const { 
-  files, folders, path, currentFolderId, loading, error, uploadProgress, storageStats,
+  files, folders, path, currentFolderId, loading, error, uploadProgress, isUploading, storageStats,
   fetchFiles, fetchTrash, searchFiles, upload, download, trashFile, restoreFile, deleteFile,
   renameFile, moveFile, createFolder, renameFolder, deleteFolder, fetchStorageStats, clearError,
-  getActivity
+  getActivity, isEncryptionReady
 } = useFiles()
+
+// Encryption status
+const encryptionReady = computed(() => isEncryptionReady())
 
 // User info - will be populated from fetchProfile
 const user = computed(() => ({
@@ -1272,6 +1281,15 @@ function handleKeyDown(e: KeyboardEvent) {
   padding: 4px 10px;
   border-radius: 6px;
   box-shadow: var(--gc-shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progress-text svg {
+  width: 14px;
+  height: 14px;
+  color: #10b981;
 }
 
 /* Error Banner */
