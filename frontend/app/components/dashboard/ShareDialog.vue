@@ -1,3 +1,14 @@
+<!--
+  Share Dialog Component
+  
+  This meets Functional Requirements #5, #14, #17, #18, #19:
+  FR-5: The user SHALL be able to share files.
+  FR-14: The user SHALL be able to share files.
+  FR-17: The user SHALL be able to delete shared files.
+  FR-18: The user SHALL be able to grant file access permissions.
+  FR-19: The user SHALL be able to revoke file access permissions.
+-->
+
 <template>
   <Teleport to="body">
     <div v-if="visible" class="modal-backdrop" @click.self="emit('close')">

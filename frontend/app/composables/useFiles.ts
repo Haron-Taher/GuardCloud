@@ -1,7 +1,11 @@
+// File management composable for GuardCloud
+// Handles file upload, download, encryption, sharing, and folder operations
+
 import { ref, shallowRef } from 'vue'
 import apiClient from '~/utils/apiClient'
 import { cryptoManager, type EncryptionMetadata, arrayBufferToBase64, base64ToArrayBuffer } from '~/utils/crypto'
 
+// Data structures
 interface FileItem {
   id: number
   filename: string
@@ -54,7 +58,7 @@ interface StorageStats {
   percentage: number
 }
 
-// Singleton state
+// Global state shared across components
 const files = shallowRef<FileItem[]>([])
 const folders = shallowRef<FolderItem[]>([])
 const path = shallowRef<PathItem[]>([])
@@ -65,24 +69,24 @@ const uploadProgress = ref(0)
 const isUploading = ref(false)
 const storageStats = ref<StorageStats | null>(null)
 
-// Cache
+// Simple cache to avoid refetching too often
 const CACHE_DURATION = 30000
 let lastFetch = 0
 let lastFolderKey = ''
 
 /**
- * Pack encrypted data with metadata for storage
- * Format: [4 bytes: metadata length][metadata JSON][encrypted data]
+ * Pack encrypted data with its metadata for storage
+ * Format: [4 bytes length][metadata JSON][encrypted data]
  */
 function packEncryptedData(encryptedData: ArrayBuffer, metadata: EncryptionMetadata): ArrayBuffer {
   const metadataJson = JSON.stringify(metadata)
   const metadataBytes = new TextEncoder().encode(metadataJson)
   
-  // Create header with metadata length
+  // Header stores metadata length
   const header = new ArrayBuffer(4)
-  new DataView(header).setUint32(0, metadataBytes.length, true) // little-endian
+  new DataView(header).setUint32(0, metadataBytes.length, true)
   
-  // Combine: header + metadata + encrypted data
+  // Combine everything into one buffer
   const result = new Uint8Array(4 + metadataBytes.length + encryptedData.byteLength)
   result.set(new Uint8Array(header), 0)
   result.set(metadataBytes, 4)
@@ -92,25 +96,25 @@ function packEncryptedData(encryptedData: ArrayBuffer, metadata: EncryptionMetad
 }
 
 /**
- * Unpack encrypted data and metadata from storage
+ * Unpack encrypted data and extract metadata
  */
 function unpackEncryptedData(data: ArrayBuffer): { encryptedData: ArrayBuffer; metadata: EncryptionMetadata } {
   const view = new DataView(data)
-  const metadataLength = view.getUint32(0, true) // little-endian
+  const metadataLength = view.getUint32(0, true)
   
-  // Extract metadata
+  // Get metadata
   const metadataBytes = new Uint8Array(data, 4, metadataLength)
   const metadataJson = new TextDecoder().decode(metadataBytes)
   const metadata = JSON.parse(metadataJson) as EncryptionMetadata
   
-  // Extract encrypted data
+  // Get encrypted data
   const encryptedData = data.slice(4 + metadataLength)
   
   return { encryptedData, metadata }
 }
 
 /**
- * Check if data is encrypted (has our header format)
+ * Check if data has our encryption format
  */
 function isEncryptedData(data: ArrayBuffer): boolean {
   if (data.byteLength < 10) return false
@@ -119,10 +123,10 @@ function isEncryptedData(data: ArrayBuffer): boolean {
     const view = new DataView(data)
     const metadataLength = view.getUint32(0, true)
     
-    // Sanity check: metadata shouldn't be larger than 1KB
+    // Metadata shouldn't be too big or too small
     if (metadataLength > 1024 || metadataLength < 10) return false
     
-    // Try to parse metadata
+    // Try parsing it
     const metadataBytes = new Uint8Array(data, 4, metadataLength)
     const metadataJson = new TextDecoder().decode(metadataBytes)
     const metadata = JSON.parse(metadataJson)
@@ -135,18 +139,24 @@ function isEncryptedData(data: ArrayBuffer): boolean {
 }
 
 export function useFiles() {
-  const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+  const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB limit
 
-  // Check if encryption is available
+  // Check if encryption is ready to use
   function isEncryptionReady(): boolean {
     return cryptoManager.isInitialized()
   }
 
-  // Fetch files and folders for current directory
+  /**
+   * This meets Functional Requirement #3:
+   * FR-3: The user SHALL be presented with a file management system after successfully logging in.
+   * 
+   * Loads files and folders for the current directory
+   */
   async function fetchFiles(folderId: number | null = null, force = false) {
     const folderKey = String(folderId)
     const now = Date.now()
     
+    // Use cached data if recent
     if (!force && folderKey === lastFolderKey && now - lastFetch < CACHE_DURATION) {
       return
     }
@@ -167,13 +177,17 @@ export function useFiles() {
       lastFolderKey = folderKey
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to load files'
-      console.error('Fetch files error:', err)
     } finally {
       loading.value = false
     }
   }
 
-  // Search files
+  /**
+   * This meets Functional Requirement #10:
+   * FR-10: The user SHALL be able find files using a search function.
+   * 
+   * Searches files by name
+   */
   async function searchFiles(query: string): Promise<FileItem[]> {
     if (!query.trim()) return []
     
@@ -181,12 +195,11 @@ export function useFiles() {
       const res = await apiClient.get('/files/search', { params: { q: query } })
       return res.data.files || []
     } catch (err: any) {
-      console.error('Search error:', err)
       return []
     }
   }
 
-  // Fetch trashed files
+  // Load files in trash
   async function fetchTrash(): Promise<FileItem[]> {
     try {
       const res = await apiClient.get('/files/trash')
@@ -197,7 +210,13 @@ export function useFiles() {
     }
   }
 
-  // Upload file with encryption
+  /**
+   * This meets Functional Requirements #4 and #6:
+   * FR-4: The user SHALL be able to upload files in the file management system.
+   * FR-6: The user SHALL be able to encrypt the files or contents that are being shared in transit.
+   * 
+   * Uploads a file with client-side encryption
+   */
   async function upload(file: File, folderId: number | null = null, onProgress?: (percent: number) => void) {
     if (!file) {
       error.value = 'No file selected'
@@ -214,7 +233,6 @@ export function useFiles() {
       return false
     }
 
-    // Check if encryption is ready
     if (!isEncryptionReady()) {
       error.value = 'Encryption not initialized. Please log in again.'
       return false
@@ -223,31 +241,26 @@ export function useFiles() {
     loading.value = true
     isUploading.value = true
     error.value = null
-    uploadProgress.value = 5 // Start at 5% to show activity
+    uploadProgress.value = 5
 
     try {
-      // Read file as ArrayBuffer
+      // Read the file
       const fileData = await file.arrayBuffer()
       uploadProgress.value = 10
       
-      // Encrypt the file
-      console.log('[Upload] Encrypting file:', file.name)
+      // Encrypt it
       const { encryptedData, metadata } = await cryptoManager.encryptFile(fileData)
       uploadProgress.value = 30
-      console.log('[Upload] File encrypted, metadata:', metadata)
       
-      // Pack encrypted data with metadata
+      // Pack with metadata
       const packedData = packEncryptedData(encryptedData, metadata)
-      console.log('[Upload] Original size:', fileData.byteLength, 'Encrypted size:', packedData.byteLength)
       
-      // Create encrypted blob
+      // Create blob for upload
       const encryptedBlob = new Blob([packedData], { type: 'application/octet-stream' })
       
-      // Create form data with encrypted file
+      // Build form data
       const formData = new FormData()
       formData.append('file', encryptedBlob, file.name)
-      
-      // Also send original mime type for later decryption
       formData.append('original_mime_type', file.type || 'application/octet-stream')
       formData.append('encrypted', 'true')
 
@@ -255,12 +268,12 @@ export function useFiles() {
       
       uploadProgress.value = 40
 
+      // Upload to server
       await apiClient.post('/files/upload', formData, {
         params,
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (e) => {
           if (e.total) {
-            // Map 40-100% to upload progress
             const percent = 40 + Math.round((e.loaded / e.total) * 60)
             uploadProgress.value = Math.min(percent, 99)
             onProgress?.(uploadProgress.value)
@@ -269,16 +282,13 @@ export function useFiles() {
       })
 
       uploadProgress.value = 100
-      console.log('[Upload] Upload complete')
       
-      // Refresh file list
+      // Refresh the file list
       await fetchFiles(currentFolderId.value, true)
-      // Refresh storage stats
       await fetchStorageStats()
       
       return true
     } catch (err: any) {
-      console.error('[Upload] Error:', err)
       if (err.response?.status === 413) {
         error.value = 'Storage limit exceeded'
       } else if (err.name === 'OperationError') {
@@ -290,42 +300,40 @@ export function useFiles() {
     } finally {
       loading.value = false
       isUploading.value = false
-      // Reset progress after a delay
       setTimeout(() => {
         uploadProgress.value = 0
       }, 1000)
     }
   }
 
-  // Download file with decryption
+  /**
+   * This meets Functional Requirements #7 and #12:
+   * FR-7: The user SHALL be able to decrypt the files once they reach the client.
+   * FR-12: The user SHALL be able to download files.
+   * 
+   * Downloads and decrypts a file
+   */
   async function download(file: FileItem) {
-    // Check if encryption is ready
     if (!isEncryptionReady()) {
       error.value = 'Encryption not initialized. Please log in again.'
       return
     }
 
     try {
-      console.log('[Download] Downloading file:', file.filename)
-      
+      // Get encrypted file from server
       const res = await apiClient.get(`/files/${file.id}/download`, {
         responseType: 'arraybuffer'
       })
 
-      // Unpack and decrypt
       const packedData = res.data as ArrayBuffer
-      console.log('[Download] Received data, size:', packedData.byteLength)
       
-      // Check if data is encrypted
       if (isEncryptedData(packedData)) {
         try {
+          // Decrypt the file
           const { encryptedData, metadata } = unpackEncryptedData(packedData)
-          console.log('[Download] Decrypting with metadata:', metadata)
-          
           const decryptedData = await cryptoManager.decryptFile(encryptedData, metadata)
-          console.log('[Download] Decrypted size:', decryptedData.byteLength)
           
-          // Create download with decrypted data
+          // Trigger browser download
           const mimeType = file.mime_type || 'application/octet-stream'
           const url = window.URL.createObjectURL(new Blob([decryptedData], { type: mimeType }))
           const link = document.createElement('a')
@@ -335,15 +343,11 @@ export function useFiles() {
           link.click()
           document.body.removeChild(link)
           window.URL.revokeObjectURL(url)
-          
-          console.log('[Download] Download complete')
         } catch (decryptError) {
-          console.error('[Download] Decryption failed:', decryptError)
           error.value = 'Failed to decrypt file. The file may be corrupted or encrypted with a different key.'
         }
       } else {
-        // File is not encrypted (legacy), download as-is
-        console.log('[Download] File is not encrypted, downloading as-is')
+        // Not encrypted, download as-is
         const url = window.URL.createObjectURL(new Blob([packedData]))
         const link = document.createElement('a')
         link.href = url
@@ -354,12 +358,11 @@ export function useFiles() {
         window.URL.revokeObjectURL(url)
       }
     } catch (err: any) {
-      console.error('[Download] Error:', err)
       error.value = err.response?.data?.detail || 'Download failed'
     }
   }
 
-  // Get decrypted file data (for sharing)
+  // Get decrypted file data (used for sharing)
   async function getDecryptedFileData(file: FileItem): Promise<{ data: ArrayBuffer; mimeType: string } | null> {
     if (!isEncryptionReady()) {
       return null
@@ -380,21 +383,24 @@ export function useFiles() {
           mimeType: file.mime_type || 'application/octet-stream'
         }
       } else {
-        // Not encrypted
         return {
           data: packedData,
           mimeType: file.mime_type || 'application/octet-stream'
         }
       }
     } catch (err) {
-      console.error('[getDecryptedFileData] Error:', err)
       return null
     }
   }
 
-  // Preview file (for images, text, etc.) with decryption
+  /**
+   * This meets Functional Requirements #8 and #15:
+   * FR-8: The user SHALL be able to view file information via the web app.
+   * FR-15: The user SHALL be able to view file details.
+   * 
+   * Gets file preview data (for images, text, PDFs)
+   */
   async function preview(file: FileItem): Promise<{ url?: string; content?: string; mime_type?: string } | null> {
-    // Check if encryption is ready
     if (!isEncryptionReady()) {
       error.value = 'Encryption not initialized. Please log in again.'
       return null
@@ -403,8 +409,6 @@ export function useFiles() {
     try {
       const mime = file.mime_type || ''
       
-      console.log('[Preview] Loading preview for:', file.filename, 'MIME:', mime)
-      
       // Get encrypted data
       const res = await apiClient.get(`/files/${file.id}/download`, {
         responseType: 'arraybuffer'
@@ -412,30 +416,28 @@ export function useFiles() {
       
       const packedData = res.data as ArrayBuffer
       
-      // Check if data is encrypted
       if (isEncryptedData(packedData)) {
         try {
-          // Decrypt the file
+          // Decrypt
           const { encryptedData, metadata } = unpackEncryptedData(packedData)
           const decryptedData = await cryptoManager.decryptFile(encryptedData, metadata)
           
-          // For images and PDFs, create blob URL
+          // Images and PDFs get a blob URL
           if (mime.startsWith('image/') || mime === 'application/pdf') {
             const url = window.URL.createObjectURL(new Blob([decryptedData], { type: mime }))
             return { url, mime_type: mime }
           }
           
-          // For text files, decode content
+          // Text files get decoded content
           if (mime.startsWith('text/') || ['application/json', 'application/javascript'].includes(mime)) {
             const content = new TextDecoder().decode(decryptedData)
             return { content, mime_type: mime }
           }
           
-          // For other types, create generic blob URL
+          // Everything else gets a blob URL
           const url = window.URL.createObjectURL(new Blob([decryptedData], { type: mime }))
           return { url, mime_type: mime }
         } catch (decryptError) {
-          console.error('[Preview] Decryption failed:', decryptError)
           return null
         }
       } else {
@@ -453,12 +455,17 @@ export function useFiles() {
         return null
       }
     } catch (err: any) {
-      console.error('[Preview] Error:', err)
       return null
     }
   }
 
-  // Rename file
+  /**
+   * This meets Functional Requirements #9 and #11:
+   * FR-9: The user SHALL be able to manage properties of files within the system.
+   * FR-11: The user SHALL be able to manage files.
+   * 
+   * Renames a file
+   */
   async function renameFile(file: FileItem, newName: string) {
     if (!newName.trim()) {
       error.value = 'Name cannot be empty'
@@ -483,7 +490,12 @@ export function useFiles() {
     }
   }
 
-  // Move file to folder
+  /**
+   * This meets Functional Requirement #16:
+   * FR-16: The user SHALL be able to view the location of files.
+   * 
+   * Moves a file to a different folder
+   */
   async function moveFile(file: FileItem, folderId: number | null) {
     try {
       await apiClient.put(`/files/${file.id}/move`, { folder_id: folderId })
@@ -495,12 +507,17 @@ export function useFiles() {
     }
   }
 
-  // Move file to trash
+  /**
+   * This meets Functional Requirement #13:
+   * FR-13: The user SHALL be able to delete files.
+   * 
+   * Moves a file to trash
+   */
   async function trashFile(file: FileItem) {
     try {
       await apiClient.post(`/files/${file.id}/trash`)
       
-      // Remove from local state
+      // Remove from local list
       files.value = files.value.filter(f => f.id !== file.id)
       await fetchStorageStats()
       
@@ -511,7 +528,7 @@ export function useFiles() {
     }
   }
 
-  // Restore file from trash
+  // Restore a file from trash
   async function restoreFile(file: FileItem) {
     try {
       await apiClient.post(`/files/${file.id}/restore`)
@@ -522,7 +539,7 @@ export function useFiles() {
     }
   }
 
-  // Permanently delete file
+  // Permanently delete a file
   async function deleteFile(file: FileItem) {
     try {
       await apiClient.delete(`/files/${file.id}`)
@@ -534,7 +551,7 @@ export function useFiles() {
     }
   }
 
-  // Create folder
+  // Create a new folder
   async function createFolder(name: string, parentId: number | null = null) {
     if (!name.trim()) {
       error.value = 'Folder name cannot be empty'
@@ -551,7 +568,7 @@ export function useFiles() {
     }
   }
 
-  // Rename folder
+  // Rename a folder
   async function renameFolder(folder: FolderItem, newName: string) {
     if (!newName.trim()) {
       error.value = 'Name cannot be empty'
@@ -576,7 +593,7 @@ export function useFiles() {
     }
   }
 
-  // Delete folder
+  // Delete a folder
   async function deleteFolder(folder: FolderItem) {
     try {
       await apiClient.delete(`/folders/${folder.id}`)
@@ -589,30 +606,34 @@ export function useFiles() {
     }
   }
 
-  // Create share link - uploads decrypted version for sharing
+  /**
+   * This meets Functional Requirements #5, #14, and #18:
+   * FR-5: The user SHALL be able to share files.
+   * FR-14: The user SHALL be able to share files.
+   * FR-18: The user SHALL be able to grant file access permissions.
+   * 
+   * Creates a share link with optional password and expiration
+   */
   async function createShareLink(fileId: number, options: {
     password?: string
     expires_in_days?: number
     max_downloads?: number
   } = {}) {
     try {
-      // Get the file info
       const file = files.value.find(f => f.id === fileId)
       if (!file) {
         error.value = 'File not found'
         return null
       }
 
-      // Create form data
       const formData = new FormData()
       
-      // If encryption is ready, get decrypted file data for sharing
+      // Upload decrypted version for sharing
       if (isEncryptionReady()) {
         const decrypted = await getDecryptedFileData(file)
         if (decrypted) {
           const blob = new Blob([decrypted.data], { type: decrypted.mimeType })
           formData.append('file', blob, file.filename)
-          console.log('[Share] Uploading decrypted file for sharing')
         }
       }
       
@@ -626,24 +647,28 @@ export function useFiles() {
       
       return res.data
     } catch (err: any) {
-      console.error('[Share] Error:', err)
       error.value = err.response?.data?.detail || 'Could not create share link'
       return null
     }
   }
 
-  // Get share links for a file
+  // Get all share links for a file
   async function getShareLinks(fileId: number): Promise<ShareLink[]> {
     try {
       const res = await apiClient.get(`/files/${fileId}/shares`)
       return res.data.shares || []
     } catch (err: any) {
-      console.error('Get shares error:', err)
       return []
     }
   }
 
-  // Delete share link
+  /**
+   * This meets Functional Requirements #17 and #19:
+   * FR-17: The user SHALL be able to delete shared files.
+   * FR-19: The user SHALL be able to revoke file access permissions.
+   * 
+   * Deletes a share link
+   */
   async function deleteShareLink(linkId: number) {
     try {
       await apiClient.delete(`/shares/${linkId}`)
@@ -660,19 +685,17 @@ export function useFiles() {
       const res = await apiClient.get('/activity', { params: { limit } })
       return res.data.activities || []
     } catch (err: any) {
-      console.error('Get activity error:', err)
       return []
     }
   }
 
-  // Get storage stats
+  // Get storage usage stats
   async function fetchStorageStats() {
     try {
       const res = await apiClient.get('/storage')
       storageStats.value = res.data
       return res.data
     } catch (err: any) {
-      console.error('Get storage stats error:', err)
       return null
     }
   }
@@ -698,7 +721,7 @@ export function useFiles() {
     isUploading,
     storageStats,
     
-    // Encryption status
+    // Encryption check
     isEncryptionReady,
     
     // File operations
