@@ -1,3 +1,17 @@
+# GuardCloud Database 
+# Handles all database operations using SQLCipher for encryption
+#
+# This database file supports the following Functional Requirements:
+# FR-2: User authentication (signup_db, login_db)
+# FR-3: File management system (get_user_files, get_folders)
+# FR-4: File upload (save_file_metadata)
+# FR-5, FR-14, FR-18: File sharing (create_share_link, get_share_link)
+# FR-9, FR-11: File property management (rename_file, move_file)
+# FR-10: Search function (search_files)
+# FR-12: File download (get_file_by_id)
+# FR-13: File deletion (trash_file, delete_file_permanent)
+# FR-17, FR-19: Share link management (delete_share_link)
+
 from sqlcipher3 import dbapi2 as sqlite3
 from security import authentication
 from dotenv import load_dotenv
@@ -9,6 +23,7 @@ load_dotenv()
 db_file = os.getenv("DB_FILE")
 
 def db_connection():
+    """Create a connection to the encrypted SQLCipher database."""
     key = os.getenv("SQLCIPHER_KEY")
     if not key:
         raise RuntimeError("Missing SQLCIPHER_KEY environment variable")
@@ -20,11 +35,11 @@ def db_connection():
 
 
 def Initialize_db():
-    """Create the core tables if they don't already exist."""
+    """Create all tables if they don't exist."""
     conn = db_connection()
     cursor = conn.cursor()
 
-    # Users table for storing credentials
+    # Users table
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS users(
@@ -38,7 +53,7 @@ def Initialize_db():
         """
     )
 
-    # Files table for storing file metadata
+    # Files table
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS files(
@@ -94,12 +109,12 @@ def Initialize_db():
         """
     )
     
-    # Add share_stored_path column if it doesn't exist (migration)
+    # Migration: add share_stored_path if missing
     try:
         cursor.execute("ALTER TABLE share_links ADD COLUMN share_stored_path TEXT")
         conn.commit()
     except:
-        pass  # Column already exists
+        pass
 
     # Activity log table
     cursor.execute(
@@ -125,7 +140,7 @@ def Initialize_db():
 # ============== User Functions ==============
 
 def user_exists(username):
-    """Return True if a username already exists."""
+    """Check if a username is already taken."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM users WHERE username = ?", (username,))
@@ -134,10 +149,16 @@ def user_exists(username):
     return user is not None
 
 
+"""
+This meets Functional Requirement #2:
+FR-2: The user SHALL be prompted for a login or create account option.
+
+These functions handle user registration and login.
+"""
+
 def signup_db(username, password_hash, email=None):
-    """Insert a new user if the username does not already exist."""
+    """Create a new user account."""
     if user_exists(username):
-        print(f"Username {username} already exists!")
         return False
 
     conn = db_connection()
@@ -148,13 +169,11 @@ def signup_db(username, password_hash, email=None):
     )
     conn.commit()
     conn.close()
-
-    print(f"User {username} created successfully!")
     return True
 
 
 def login_db(username, password):
-    """Authenticates a user by checking if the credentials are valid"""
+    """Verify login credentials."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
@@ -162,15 +181,12 @@ def login_db(username, password):
     conn.close()
 
     if user and authentication(password, user["password"]):
-        print(f"Login successful for {username}!")
         return True
-
-    print("Invalid username or password.")
     return False
 
 
 def get_user_info(username):
-    """Get user profile information."""
+    """Get user profile data."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -191,7 +207,7 @@ def get_user_info(username):
 
 
 def update_user_email(username, email):
-    """Update user email."""
+    """Update user's email address."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -204,7 +220,7 @@ def update_user_email(username, email):
 
 
 def update_user_password(username, password_hash):
-    """Update user password."""
+    """Update user's password."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -218,8 +234,13 @@ def update_user_password(username, password_hash):
 
 # ============== File Functions ==============
 
+"""
+This meets Functional Requirement #4:
+FR-4: The user SHALL be able to upload files in the file management system.
+"""
+
 def save_file_metadata(owner, filename, stored_path, size, mime_type=None, folder_id=None):
-    """Store a file record for the given user."""
+    """Save file info to database after upload."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -233,8 +254,13 @@ def save_file_metadata(owner, filename, stored_path, size, mime_type=None, folde
     return file_id
 
 
+"""
+This meets Functional Requirement #3:
+FR-3: The user SHALL be presented with a file management system after successfully logging in.
+"""
+
 def get_user_files(owner, folder_id=None, include_trashed=False):
-    """Return a list of files for a given user in a specific folder."""
+    """Get files for a user in a specific folder."""
     conn = db_connection()
     cursor = conn.cursor()
     
@@ -292,7 +318,7 @@ def get_user_files(owner, folder_id=None, include_trashed=False):
 
 
 def get_trashed_files(owner):
-    """Return all trashed files for a user."""
+    """Get all files in trash."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -319,8 +345,14 @@ def get_trashed_files(owner):
     ]
 
 
+"""
+This meets Functional Requirements #8 and #15:
+FR-8: The user SHALL be able to view file information via the web app.
+FR-15: The user SHALL be able to view file details.
+"""
+
 def get_file_by_id(file_id, owner):
-    """Return a single file row for this user, or None."""
+    """Get a single file's details."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -334,8 +366,14 @@ def get_file_by_id(file_id, owner):
     return row
 
 
+"""
+This meets Functional Requirements #9 and #11:
+FR-9: The user SHALL be able to manage properties of files within the system.
+FR-11: The user SHALL be able to manage files.
+"""
+
 def rename_file(file_id, owner, new_filename):
-    """Rename a file."""
+    """Change a file's name."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -349,6 +387,11 @@ def rename_file(file_id, owner, new_filename):
     conn.close()
     return affected > 0
 
+
+"""
+This meets Functional Requirement #16:
+FR-16: The user SHALL be able to view the location of files.
+"""
 
 def move_file(file_id, owner, folder_id):
     """Move a file to a different folder."""
@@ -365,6 +408,11 @@ def move_file(file_id, owner, folder_id):
     conn.close()
     return affected > 0
 
+
+"""
+This meets Functional Requirement #13:
+FR-13: The user SHALL be able to delete files.
+"""
 
 def trash_file(file_id, owner):
     """Move a file to trash."""
@@ -399,11 +447,11 @@ def restore_file(file_id, owner):
 
 
 def delete_file_permanent(file_id, owner):
-    """Permanently delete a file from database."""
+    """Permanently delete a file."""
     conn = db_connection()
     cursor = conn.cursor()
     
-    # First get the file info
+    # Get file path first
     cursor.execute(
         "SELECT stored_path FROM files WHERE id = ? AND owner = ?",
         (file_id, owner),
@@ -416,7 +464,7 @@ def delete_file_permanent(file_id, owner):
             "DELETE FROM files WHERE id = ? AND owner = ?",
             (file_id, owner),
         )
-        # Also delete any share links
+        # Delete share links too
         cursor.execute(
             "DELETE FROM share_links WHERE file_id = ?",
             (file_id,),
@@ -429,8 +477,13 @@ def delete_file_permanent(file_id, owner):
     return None
 
 
+"""
+This meets Functional Requirement #10:
+FR-10: The user SHALL be able find files using a search function.
+"""
+
 def search_files(owner, query):
-    """Search files by filename."""
+    """Search files by name."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -475,7 +528,7 @@ def create_folder(owner, name, parent_id=None):
 
 
 def get_folders(owner, parent_id=None):
-    """Get folders for a user in a specific parent folder."""
+    """Get folders in a specific directory."""
     conn = db_connection()
     cursor = conn.cursor()
     
@@ -511,7 +564,7 @@ def get_folders(owner, parent_id=None):
 
 
 def get_folder_by_id(folder_id, owner):
-    """Get a specific folder."""
+    """Get a single folder's details."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -534,7 +587,7 @@ def get_folder_by_id(folder_id, owner):
 
 
 def rename_folder(folder_id, owner, new_name):
-    """Rename a folder."""
+    """Change a folder's name."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -554,7 +607,7 @@ def trash_folder(folder_id, owner):
     conn = db_connection()
     cursor = conn.cursor()
     
-    # Trash the folder
+    # Trash folder
     cursor.execute(
         """UPDATE folders 
            SET is_trashed = 1, trashed_at = CURRENT_TIMESTAMP 
@@ -562,7 +615,7 @@ def trash_folder(folder_id, owner):
         (folder_id, owner),
     )
     
-    # Trash all files in the folder
+    # Trash files inside
     cursor.execute(
         """UPDATE files 
            SET is_trashed = 1, trashed_at = CURRENT_TIMESTAMP 
@@ -576,24 +629,24 @@ def trash_folder(folder_id, owner):
 
 
 def delete_folder_permanent(folder_id, owner):
-    """Permanently delete a folder."""
+    """Permanently delete a folder and all files in it."""
     conn = db_connection()
     cursor = conn.cursor()
     
-    # Get all files in the folder
+    # Get file paths
     cursor.execute(
         "SELECT stored_path FROM files WHERE folder_id = ? AND owner = ?",
         (folder_id, owner),
     )
     file_paths = [row["stored_path"] for row in cursor.fetchall()]
     
-    # Delete files from database
+    # Delete files
     cursor.execute(
         "DELETE FROM files WHERE folder_id = ? AND owner = ?",
         (folder_id, owner),
     )
     
-    # Delete the folder
+    # Delete folder
     cursor.execute(
         "DELETE FROM folders WHERE id = ? AND owner = ?",
         (folder_id, owner),
@@ -605,7 +658,7 @@ def delete_folder_permanent(folder_id, owner):
 
 
 def get_folder_path(folder_id, owner):
-    """Get the full path of a folder (breadcrumb)."""
+    """Build breadcrumb path for a folder."""
     path = []
     conn = db_connection()
     cursor = conn.cursor()
@@ -628,6 +681,13 @@ def get_folder_path(folder_id, owner):
 
 
 # ============== Share Functions ==============
+
+"""
+This meets Functional Requirements #5, #14, and #18:
+FR-5: The user SHALL be able to share files.
+FR-14: The user SHALL be able to share files.
+FR-18: The user SHALL be able to grant file access permissions.
+"""
 
 def create_share_link(file_id, created_by, password_hash=None, expires_in_days=None, max_downloads=None, share_stored_path=None):
     """Create a share link for a file."""
@@ -664,7 +724,7 @@ def get_share_link(token):
     conn.close()
     
     if row:
-        # Use share_stored_path if available, otherwise fall back to original file path
+        # Use decrypted share copy if available
         stored_path = row["share_stored_path"] if row["share_stored_path"] else row["stored_path"]
         return {
             "id": row["id"],
@@ -715,7 +775,7 @@ def get_file_share_links(file_id, owner):
 
 
 def increment_share_download(token):
-    """Increment download count for a share link."""
+    """Count a download on a share link."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -726,8 +786,14 @@ def increment_share_download(token):
     conn.close()
 
 
+"""
+This meets Functional Requirements #17 and #19:
+FR-17: The user SHALL be able to delete shared files.
+FR-19: The user SHALL be able to revoke file access permissions.
+"""
+
 def delete_share_link(link_id, owner):
-    """Delete a share link."""
+    """Delete a share link to revoke access."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -744,7 +810,7 @@ def delete_share_link(link_id, owner):
 # ============== Activity Log Functions ==============
 
 def log_activity(username, action, target_type=None, target_id=None, target_name=None, details=None, ip_address=None):
-    """Log a user activity."""
+    """Record a user action."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -788,7 +854,7 @@ def get_user_activity(username, limit=50):
 # ============== Storage Stats ==============
 
 def get_storage_used(owner):
-    """Get total storage used by a user."""
+    """Get total bytes used by a user."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -801,7 +867,7 @@ def get_storage_used(owner):
 
 
 def get_file_count(owner):
-    """Get total file count for a user."""
+    """Get number of files for a user."""
     conn = db_connection()
     cursor = conn.cursor()
     cursor.execute(
