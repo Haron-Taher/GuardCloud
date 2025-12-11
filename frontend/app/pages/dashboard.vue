@@ -1,3 +1,20 @@
+<!--
+  Dashboard Page - Main File Management Interface
+  
+  This meets Functional Requirements #3, #4, #8, #9, #10, #11, #12, #13, #15, #16, #20:
+  FR-3: The user SHALL be presented with a file management system after successfully logging in.
+  FR-4: The user SHALL be able to upload files in the file management system.
+  FR-8: The user SHALL be able to view file information via the web app.
+  FR-9: The user SHALL be able to manage properties of files within the system.
+  FR-10: The user SHALL be able find files using a search function.
+  FR-11: The user SHALL be able to manage files.
+  FR-12: The user SHALL be able to download files.
+  FR-13: The user SHALL be able to delete files.
+  FR-15: The user SHALL be able to view file details.
+  FR-16: The user SHALL be able to view the location of files.
+  FR-20: The user SHALL be able to log out and end an authenticated session.
+-->
+
 <template>
   <div class="dashboard">
     <!-- Top Bar -->

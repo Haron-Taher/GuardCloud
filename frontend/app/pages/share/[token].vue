@@ -1,3 +1,14 @@
+<!--
+  Share Download Page
+  
+  This meets Functional Requirements #5, #12, and #14:
+  FR-5: The user SHALL be able to share files.
+  FR-12: The user SHALL be able to download files.
+  FR-14: The user SHALL be able to share files.
+  
+  This page allows recipients to download shared files via a secure link.
+-->
+
 <template>
   <div class="share-page">
     <div class="share-container">

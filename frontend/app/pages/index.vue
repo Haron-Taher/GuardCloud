@@ -1,3 +1,14 @@
+<!--
+  Landing Page
+  
+  This meets Functional Requirement #1:
+  FR-1: The user SHALL be able to access the web app from their browser of choice by entering in a URL.
+  
+  This meets Functional Requirement #2:
+  FR-2: The user SHALL be prompted for a login or create account option.
+  (Sign in and Get Started buttons link to login/signup pages)
+-->
+
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useTheme } from '~/composables/useTheme'

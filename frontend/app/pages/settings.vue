@@ -1,3 +1,13 @@
+<!--
+  Settings Page
+  
+  This meets Functional Requirements #9 and #20:
+  FR-9: The user SHALL be able to manage properties of files within the system.
+        (Profile and password management are part of user/system properties)
+  FR-20: The user SHALL be able to log out and end an authenticated session.
+        (Logout button available on this page)
+-->
+
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'

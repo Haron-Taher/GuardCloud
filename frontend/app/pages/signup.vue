@@ -1,3 +1,10 @@
+<!--
+  Signup Page
+  
+  This meets Functional Requirement #2:
+  FR-2: The user SHALL be prompted for a login or create account option.
+-->
+
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
