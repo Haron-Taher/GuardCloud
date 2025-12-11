@@ -1,26 +1,23 @@
+// GuardCloud Encryption Module
+// Handles all client-side encryption using AES-256-GCM
+
 /**
- * GuardCloud End-to-End Encryption Module
- * 
- * Implements client-side encryption using:
- * - AES-256-GCM for file encryption
- * - PBKDF2 for key derivation from password
- * - Random per-file keys wrapped with master key
+ * This module meets Functional Requirements #6 and #7:
+ * FR-6: The user SHALL be able to encrypt the files or contents that are being shared in transit.
+ * FR-7: The user SHALL be able to decrypt the files once they reach the client.
  */
 
-// Constants
+// Encryption settings
 const ALGORITHM = 'AES-GCM'
 const KEY_LENGTH = 256
-const IV_LENGTH = 12 // 96 bits for GCM
+const IV_LENGTH = 12    // 96 bits for GCM mode
 const SALT_LENGTH = 16
-const PBKDF2_ITERATIONS = 100000
+const PBKDF2_ITERATIONS = 100000  // Iterations for password-based key derivation
 
-// Storage keys
-const MASTER_KEY_STORAGE = 'gc_master_key'
+// LocalStorage keys
 const SALT_STORAGE = 'gc_key_salt'
 
-/**
- * Convert ArrayBuffer to Base64 string
- */
+// Convert ArrayBuffer to Base64 string
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
   let binary = ''
@@ -30,9 +27,7 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary)
 }
 
-/**
- * Convert Base64 string to ArrayBuffer
- */
+// Convert Base64 string to ArrayBuffer
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
   const binary = atob(base64)
   const bytes = new Uint8Array(binary.length)
@@ -42,35 +37,27 @@ export function base64ToArrayBuffer(base64: string): ArrayBuffer {
   return bytes.buffer
 }
 
-/**
- * Generate cryptographically secure random bytes
- */
+// Generate random bytes for IVs and salts
 export function generateRandomBytes(length: number): Uint8Array {
   return crypto.getRandomValues(new Uint8Array(length))
 }
 
-/**
- * Generate a random IV for encryption
- */
+// Generate a random IV for encryption
 export function generateIV(): Uint8Array {
   return generateRandomBytes(IV_LENGTH)
 }
 
-/**
- * Generate a random salt for key derivation
- */
+// Generate a random salt for key derivation
 export function generateSalt(): Uint8Array {
   return generateRandomBytes(SALT_LENGTH)
 }
 
-/**
- * Derive a master key from password using PBKDF2
- */
+// Create a master key from the user's password using PBKDF2
 export async function deriveKeyFromPassword(
   password: string,
   salt: Uint8Array
 ): Promise<CryptoKey> {
-  // Import password as key material
+  // Import password as raw key material
   const passwordKey = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(password),
@@ -79,7 +66,7 @@ export async function deriveKeyFromPassword(
     ['deriveBits', 'deriveKey']
   )
 
-  // Derive the actual encryption key
+  // Derive the actual AES key
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
@@ -89,25 +76,21 @@ export async function deriveKeyFromPassword(
     },
     passwordKey,
     { name: ALGORITHM, length: KEY_LENGTH },
-    true, // extractable for export
+    true,
     ['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']
   )
 }
 
-/**
- * Generate a random file encryption key
- */
+// Generate a random key for encrypting a single file
 export async function generateFileKey(): Promise<CryptoKey> {
   return crypto.subtle.generateKey(
     { name: ALGORITHM, length: KEY_LENGTH },
-    true, // extractable for wrapping
+    true,
     ['encrypt', 'decrypt']
   )
 }
 
-/**
- * Wrap (encrypt) a file key with the master key
- */
+// Wrap (encrypt) a file key with the master key
 export async function wrapKey(
   fileKey: CryptoKey,
   masterKey: CryptoKey,
@@ -121,9 +104,7 @@ export async function wrapKey(
   )
 }
 
-/**
- * Unwrap (decrypt) a file key using the master key
- */
+// Unwrap (decrypt) a file key using the master key
 export async function unwrapKey(
   wrappedKey: ArrayBuffer,
   masterKey: CryptoKey,
@@ -140,9 +121,7 @@ export async function unwrapKey(
   )
 }
 
-/**
- * Encrypt data using AES-256-GCM
- */
+// Encrypt data using AES-256-GCM
 export async function encryptData(
   data: ArrayBuffer,
   key: CryptoKey,
@@ -155,9 +134,7 @@ export async function encryptData(
   )
 }
 
-/**
- * Decrypt data using AES-256-GCM
- */
+// Decrypt data using AES-256-GCM
 export async function decryptData(
   encryptedData: ArrayBuffer,
   key: CryptoKey,
@@ -170,16 +147,12 @@ export async function decryptData(
   )
 }
 
-/**
- * Export a CryptoKey to raw bytes
- */
+// Export a CryptoKey to raw bytes
 export async function exportKey(key: CryptoKey): Promise<ArrayBuffer> {
   return crypto.subtle.exportKey('raw', key)
 }
 
-/**
- * Import raw bytes as a CryptoKey
- */
+// Import raw bytes as a CryptoKey
 export async function importKey(
   keyData: ArrayBuffer,
   usages: KeyUsage[] = ['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']
@@ -193,48 +166,33 @@ export async function importKey(
   )
 }
 
-/**
- * Encrypted file structure
- */
-export interface EncryptedFile {
-  encryptedData: ArrayBuffer    // The encrypted file content
-  iv: Uint8Array                // IV used for file encryption
-  wrappedKey: ArrayBuffer       // File key wrapped with master key
-  keyIv: Uint8Array             // IV used for key wrapping
-}
-
-/**
- * Metadata stored alongside encrypted file
- */
+// Metadata stored with each encrypted file
 export interface EncryptionMetadata {
-  iv: string          // Base64 encoded IV for file
-  keyIv: string       // Base64 encoded IV for key wrap
-  wrappedKey: string  // Base64 encoded wrapped key
-  version: number     // Encryption version for future compatibility
+  iv: string          // Base64 IV for file encryption
+  keyIv: string       // Base64 IV for key wrapping
+  wrappedKey: string  // Base64 wrapped file key
+  version: number     // Version number for future updates
 }
 
-/**
- * Encrypt a file for upload
- * Returns encrypted data and metadata to store
- */
+// Encrypt a file and return encrypted data with metadata
 export async function encryptFile(
   fileData: ArrayBuffer,
   masterKey: CryptoKey
 ): Promise<{ encryptedData: ArrayBuffer; metadata: EncryptionMetadata }> {
-  // Generate random file key
+  // Each file gets its own random key
   const fileKey = await generateFileKey()
   
-  // Generate IVs
+  // Generate IVs for file encryption and key wrapping
   const fileIv = generateIV()
   const keyIv = generateIV()
   
   // Encrypt the file data
   const encryptedData = await encryptData(fileData, fileKey, fileIv)
   
-  // Wrap the file key with master key
+  // Wrap the file key with master key so it can be stored safely
   const wrappedKey = await wrapKey(fileKey, masterKey, keyIv)
   
-  // Create metadata
+  // Build metadata to store alongside the encrypted file
   const metadata: EncryptionMetadata = {
     iv: arrayBufferToBase64(fileIv),
     keyIv: arrayBufferToBase64(keyIv),
@@ -245,15 +203,13 @@ export async function encryptFile(
   return { encryptedData, metadata }
 }
 
-/**
- * Decrypt a file after download
- */
+// Decrypt a file using stored metadata
 export async function decryptFile(
   encryptedData: ArrayBuffer,
   metadata: EncryptionMetadata,
   masterKey: CryptoKey
 ): Promise<ArrayBuffer> {
-  // Decode metadata
+  // Decode metadata from base64
   const fileIv = new Uint8Array(base64ToArrayBuffer(metadata.iv))
   const keyIv = new Uint8Array(base64ToArrayBuffer(metadata.keyIv))
   const wrappedKey = base64ToArrayBuffer(metadata.wrappedKey)
@@ -266,47 +222,38 @@ export async function decryptFile(
 }
 
 /**
- * CryptoManager class for managing encryption state
+ * CryptoManager - manages encryption state for the app
+ * Stores the master key derived from user's password
  */
 export class CryptoManager {
   private masterKey: CryptoKey | null = null
   private salt: Uint8Array | null = null
   private initialized = false
 
-  /**
-   * Initialize crypto manager with password
-   * Creates or restores master key
-   */
+  // Set up encryption with user's password
   async initialize(password: string): Promise<void> {
-    // Check for existing salt in localStorage
+    // Check for existing salt (returning user)
     const storedSalt = localStorage.getItem(SALT_STORAGE)
     
     if (storedSalt) {
-      // Use existing salt
       this.salt = new Uint8Array(base64ToArrayBuffer(storedSalt))
     } else {
-      // Generate new salt for new user
+      // New user - create salt
       this.salt = generateSalt()
       localStorage.setItem(SALT_STORAGE, arrayBufferToBase64(this.salt))
     }
     
-    // Derive master key from password
+    // Create master key from password
     this.masterKey = await deriveKeyFromPassword(password, this.salt)
     this.initialized = true
-    
-    console.log('[Crypto] Master key initialized')
   }
 
-  /**
-   * Check if crypto is initialized
-   */
+  // Check if encryption is ready
   isInitialized(): boolean {
     return this.initialized && this.masterKey !== null
   }
 
-  /**
-   * Get the master key (throws if not initialized)
-   */
+  // Get master key (throws if not initialized)
   getMasterKey(): CryptoKey {
     if (!this.masterKey) {
       throw new Error('Crypto not initialized. Call initialize() first.')
@@ -314,39 +261,28 @@ export class CryptoManager {
     return this.masterKey
   }
 
-  /**
-   * Encrypt a file
-   */
+  // Encrypt a file
   async encryptFile(fileData: ArrayBuffer): Promise<{ encryptedData: ArrayBuffer; metadata: EncryptionMetadata }> {
     return encryptFile(fileData, this.getMasterKey())
   }
 
-  /**
-   * Decrypt a file
-   */
+  // Decrypt a file
   async decryptFile(encryptedData: ArrayBuffer, metadata: EncryptionMetadata): Promise<ArrayBuffer> {
     return decryptFile(encryptedData, metadata, this.getMasterKey())
   }
 
-  /**
-   * Clear crypto state (on logout)
-   */
+  // Clear encryption state on logout
   clear(): void {
     this.masterKey = null
     this.initialized = false
-    // Don't clear salt - it's needed if user logs back in
-    console.log('[Crypto] Crypto state cleared')
   }
 
-  /**
-   * Clear all crypto data including salt (for account deletion)
-   */
+  // Clear everything including salt (for account deletion)
   clearAll(): void {
     this.clear()
     localStorage.removeItem(SALT_STORAGE)
-    console.log('[Crypto] All crypto data cleared')
   }
 }
 
-// Singleton instance
+// Single instance used throughout the app
 export const cryptoManager = new CryptoManager()
