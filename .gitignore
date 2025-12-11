@@ -1,3 +1,42 @@
+# Dependencies
+node_modules/
+.venv/
+
+# Build outputs
+.nuxt/
+.output/
+dist/
+
+# Environment files (keep .env.example)
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Uploaded files
+backend/storage/*
+!backend/storage/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Lock files (optional - some prefer to include these)
 package-lock.json
-__pycache__
-guardcloud.db
