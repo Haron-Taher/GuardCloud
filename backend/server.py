@@ -1,3 +1,6 @@
+# GuardCloud Backend Server
+# REST API for file storage, sharing, and user authentication
+
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Request, Header, Response, Query, Form
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,9 +49,15 @@ from security import password_req, hash_it, create_jwt_token, verify_jwt_token, 
 
 load_dotenv()
 
+"""
+This meets Functional Requirement #1:
+FR-1: The user SHALL be able to access the web app from their browser of choice by entering in a URL.
+
+The FastAPI server hosts all endpoints that the frontend uses.
+"""
 app = FastAPI(title="GuardCloud API", version="1.0.0")
 
-# Allow frontend running on a different origin (adjust in prod)
+# Allow cross-origin requests from the frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -57,21 +66,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Where files are stored on disk
+# File storage location
 STORAGE_ROOT = Path(os.getenv("STORAGE_ROOT", "storage"))
 STORAGE_ROOT.mkdir(parents=True, exist_ok=True)
 
-# Storage limit per user (15GB default)
+# 15GB storage limit per user
 STORAGE_LIMIT = int(os.getenv("STORAGE_LIMIT", 15 * 1024 * 1024 * 1024))
 
-# Initialize DB once
+# Set up database on startup
 Initialize_db()
 
 
 # ============== Helper Functions ==============
 
 def get_current_user(authorization: str = Header(default=None)):
-    """Extract and validate JWT from Authorization header."""
+    """Get the username from the JWT token in the Authorization header."""
     if not authorization:
         raise HTTPException(status_code=401, detail="Missing Authorization header")
     if not authorization.startswith("Bearer "):
@@ -86,7 +95,7 @@ def get_current_user(authorization: str = Header(default=None)):
 
 
 def get_client_ip(request: Request) -> str:
-    """Get client IP address."""
+    """Get the client's IP address for activity logging."""
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         return forwarded.split(",")[0].strip()
@@ -107,8 +116,16 @@ def health_head():
 
 # ============== Auth Endpoints ==============
 
+"""
+This meets Functional Requirement #2:
+FR-2: The user SHALL be prompted for a login or create account option.
+
+The signup and login endpoints handle user registration and authentication.
+"""
+
 @app.post("/auth/signup")
 async def signup(request: Request):
+    """Create a new user account."""
     data = await request.json()
     username = data.get("username", "").strip()
     password = data.get("password", "")
@@ -120,7 +137,7 @@ async def signup(request: Request):
     if len(username) < 3:
         raise HTTPException(status_code=400, detail="Username must be at least 3 characters")
 
-    # Check password strength
+    # Check password meets requirements
     corrections = password_req(password)
     if corrections:
         raise HTTPException(status_code=400, detail=corrections)
@@ -137,6 +154,7 @@ async def signup(request: Request):
 
 @app.post("/auth/login")
 async def login(request: Request):
+    """Log in and get an authentication token."""
     data = await request.json()
     username = data.get("username", "").strip()
     password = data.get("password", "")
@@ -160,12 +178,11 @@ async def login(request: Request):
 
 @app.get("/auth/me")
 def get_me(current_user: str = Depends(get_current_user)):
-    """Get current user info."""
+    """Get current user's profile and storage info."""
     user_info = get_user_info(current_user)
     if not user_info:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Add storage stats
     user_info["storage_used"] = get_storage_used(current_user)
     user_info["storage_limit"] = STORAGE_LIMIT
     user_info["file_count"] = get_file_count(current_user)
@@ -175,7 +192,7 @@ def get_me(current_user: str = Depends(get_current_user)):
 
 @app.put("/auth/profile")
 async def update_profile(request: Request, current_user: str = Depends(get_current_user)):
-    """Update user profile."""
+    """Update user's email address."""
     data = await request.json()
     email = data.get("email", "").strip()
     
@@ -188,7 +205,7 @@ async def update_profile(request: Request, current_user: str = Depends(get_curre
 
 @app.put("/auth/password")
 async def change_password(request: Request, current_user: str = Depends(get_current_user)):
-    """Change user password."""
+    """Change user's password."""
     data = await request.json()
     current_password = data.get("current_password", "")
     new_password = data.get("new_password", "")
@@ -196,11 +213,11 @@ async def change_password(request: Request, current_user: str = Depends(get_curr
     if not current_password or not new_password:
         raise HTTPException(status_code=400, detail="Current and new password are required")
 
-    # Verify current password
+    # Verify current password is correct
     if not login_db(current_user, current_password):
         raise HTTPException(status_code=401, detail="Current password is incorrect")
 
-    # Check new password strength
+    # Check new password meets requirements
     corrections = password_req(new_password)
     if corrections:
         raise HTTPException(status_code=400, detail=corrections)
@@ -214,16 +231,23 @@ async def change_password(request: Request, current_user: str = Depends(get_curr
 
 # ============== File Endpoints ==============
 
+"""
+This meets Functional Requirement #3:
+FR-3: The user SHALL be presented with a file management system after successfully logging in.
+
+The file listing endpoints provide the data for the dashboard file view.
+"""
+
 @app.get("/files")
 def list_files(
     folder_id: Optional[int] = Query(None),
     current_user: str = Depends(get_current_user)
 ):
-    """List files in a folder."""
+    """List files and folders in a directory."""
     files = get_user_files(current_user, folder_id)
     folders = get_folders(current_user, folder_id)
     
-    # Get breadcrumb path
+    # Build breadcrumb path for navigation
     path = []
     if folder_id:
         path = get_folder_path(folder_id, current_user)
@@ -236,6 +260,10 @@ def list_files(
     }
 
 
+"""
+This meets Functional Requirement #10:
+FR-10: The user SHALL be able find files using a search function.
+"""
 @app.get("/files/search")
 def search_user_files(
     q: str = Query(..., min_length=1),
@@ -248,11 +276,15 @@ def search_user_files(
 
 @app.get("/files/trash")
 def list_trash(current_user: str = Depends(get_current_user)):
-    """List trashed files."""
+    """List files in trash."""
     files = get_trashed_files(current_user)
     return {"files": files}
 
 
+"""
+This meets Functional Requirement #4:
+FR-4: The user SHALL be able to upload files in the file management system.
+"""
 @app.post("/files/upload")
 async def upload_file(
     request: Request,
@@ -262,7 +294,7 @@ async def upload_file(
     encrypted: Optional[str] = Form(None),
     current_user: str = Depends(get_current_user),
 ):
-    """Upload a file (supports end-to-end encrypted files)."""
+    """Upload a file. Supports encrypted files from the frontend."""
     # Check storage limit
     current_usage = get_storage_used(current_user)
     contents = await file.read()
@@ -271,16 +303,17 @@ async def upload_file(
     if current_usage + file_size > STORAGE_LIMIT:
         raise HTTPException(status_code=413, detail="Storage limit exceeded")
 
-    # Verify folder exists and belongs to user
+    # Make sure folder exists
     if folder_id:
         folder = get_folder_by_id(folder_id, current_user)
         if not folder:
             raise HTTPException(status_code=404, detail="Folder not found")
 
+    # Create user's storage directory
     user_dir = STORAGE_ROOT / current_user
     user_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate unique filename if exists
+    # Handle filename conflicts
     stored_path = user_dir / file.filename
     counter = 1
     original_name = file.filename
@@ -289,10 +322,10 @@ async def upload_file(
         stored_path = user_dir / f"{name}_{counter}{ext}"
         counter += 1
 
+    # Save the file
     stored_path.write_bytes(contents)
 
-    # For encrypted files, use the original mime type sent by frontend
-    # For non-encrypted files, detect mime type from filename
+    # Use original mime type for encrypted files
     if encrypted == "true" and original_mime_type:
         mime_type = original_mime_type
     else:
@@ -316,9 +349,14 @@ async def upload_file(
     return {"message": "File uploaded", "file_id": file_id, "encrypted": encrypted == "true"}
 
 
+"""
+This meets Functional Requirements #8 and #15:
+FR-8: The user SHALL be able to view file information via the web app.
+FR-15: The user SHALL be able to view file details.
+"""
 @app.get("/files/{file_id}")
 def get_file_info(file_id: int, current_user: str = Depends(get_current_user)):
-    """Get file details."""
+    """Get details about a file."""
     row = get_file_by_id(file_id, current_user)
     if not row:
         raise HTTPException(status_code=404, detail="File not found")
@@ -333,6 +371,10 @@ def get_file_info(file_id: int, current_user: str = Depends(get_current_user)):
     }
 
 
+"""
+This meets Functional Requirement #12:
+FR-12: The user SHALL be able to download files.
+"""
 @app.get("/files/{file_id}/download")
 def download_file(file_id: int, current_user: str = Depends(get_current_user)):
     """Download a file."""
@@ -352,21 +394,21 @@ def download_file(file_id: int, current_user: str = Depends(get_current_user)):
 
 @app.get("/files/{file_id}/preview")
 def preview_file(file_id: int, current_user: str = Depends(get_current_user)):
-    """Preview a file (for images, text, etc.)."""
+    """Preview a file (images, text, PDFs)."""
     row = get_file_by_id(file_id, current_user)
     if not row:
         raise HTTPException(status_code=404, detail="File not found")
 
     mime_type = row["mime_type"] or "application/octet-stream"
     
-    # For images and PDFs, return the file directly
+    # Images and PDFs - return the file
     if mime_type.startswith("image/") or mime_type == "application/pdf":
         return FileResponse(
             path=row["stored_path"],
             media_type=mime_type,
         )
     
-    # For text files, return content
+    # Text files - return content
     if mime_type.startswith("text/") or mime_type in ["application/json", "application/javascript"]:
         try:
             with open(row["stored_path"], "r", encoding="utf-8") as f:
@@ -378,6 +420,11 @@ def preview_file(file_id: int, current_user: str = Depends(get_current_user)):
     raise HTTPException(status_code=400, detail="Preview not available for this file type")
 
 
+"""
+This meets Functional Requirements #9 and #11:
+FR-9: The user SHALL be able to manage properties of files within the system.
+FR-11: The user SHALL be able to manage files.
+"""
 @app.put("/files/{file_id}/rename")
 async def rename_file_endpoint(
     file_id: int,
@@ -409,6 +456,12 @@ async def rename_file_endpoint(
     return {"message": "File renamed"}
 
 
+"""
+This meets Functional Requirement #16:
+FR-16: The user SHALL be able to view the location of files.
+
+Moving files between folders updates their location.
+"""
 @app.put("/files/{file_id}/move")
 async def move_file_endpoint(
     file_id: int,
@@ -423,7 +476,7 @@ async def move_file_endpoint(
     if not row:
         raise HTTPException(status_code=404, detail="File not found")
 
-    # Verify destination folder exists
+    # Verify destination exists
     if folder_id:
         folder = get_folder_by_id(folder_id, current_user)
         if not folder:
@@ -441,6 +494,10 @@ async def move_file_endpoint(
     return {"message": "File moved"}
 
 
+"""
+This meets Functional Requirement #13:
+FR-13: The user SHALL be able to delete files.
+"""
 @app.post("/files/{file_id}/trash")
 async def trash_file_endpoint(
     file_id: int,
@@ -501,8 +558,8 @@ async def delete_file_endpoint(
     filename = row["filename"]
     stored_path = delete_file_permanent(file_id, current_user)
     
+    # Remove file from disk
     if stored_path:
-        # Delete physical file
         try:
             os.remove(stored_path)
         except:
@@ -532,7 +589,7 @@ async def create_folder_endpoint(
     if not name:
         raise HTTPException(status_code=400, detail="Folder name is required")
 
-    # Verify parent folder exists
+    # Make sure parent exists
     if parent_id:
         parent = get_folder_by_id(parent_id, current_user)
         if not parent:
@@ -618,7 +675,7 @@ async def delete_folder_endpoint(
     request: Request,
     current_user: str = Depends(get_current_user)
 ):
-    """Permanently delete a folder."""
+    """Permanently delete a folder and all its contents."""
     folder = get_folder_by_id(folder_id, current_user)
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
@@ -626,7 +683,7 @@ async def delete_folder_endpoint(
     folder_name = folder["name"]
     file_paths = delete_folder_permanent(folder_id, current_user)
 
-    # Delete physical files
+    # Delete files from disk
     for path in file_paths:
         try:
             os.remove(path)
@@ -644,6 +701,12 @@ async def delete_folder_endpoint(
 
 # ============== Share Endpoints ==============
 
+"""
+This meets Functional Requirements #5, #14, and #18:
+FR-5: The user SHALL be able to share files.
+FR-14: The user SHALL be able to share files.
+FR-18: The user SHALL be able to grant file access permissions.
+"""
 @app.post("/files/{file_id}/share")
 async def create_share(
     file_id: int,
@@ -656,14 +719,14 @@ async def create_share(
 ):
     """Create a share link for a file.
     
-    If a decrypted file is provided, it will be stored separately for sharing.
-    This allows E2E encrypted files to be shared with recipients who don't have the key.
+    Accepts a decrypted copy of the file for sharing so recipients 
+    don't need the encryption key.
     """
     row = get_file_by_id(file_id, current_user)
     if not row:
         raise HTTPException(status_code=404, detail="File not found")
 
-    # If a decrypted file is provided, store it for sharing
+    # Store decrypted file for sharing if provided
     share_stored_path = None
     if file:
         import uuid
@@ -706,13 +769,18 @@ def list_file_shares(file_id: int, current_user: str = Depends(get_current_user)
     return {"shares": shares}
 
 
+"""
+This meets Functional Requirements #17 and #19:
+FR-17: The user SHALL be able to delete shared files.
+FR-19: The user SHALL be able to revoke file access permissions.
+"""
 @app.delete("/shares/{link_id}")
 async def delete_share(
     link_id: int,
     request: Request,
     current_user: str = Depends(get_current_user)
 ):
-    """Delete a share link."""
+    """Delete a share link to revoke access."""
     if not delete_share_link(link_id, current_user):
         raise HTTPException(status_code=404, detail="Share link not found")
 
@@ -723,12 +791,12 @@ async def delete_share(
 
 @app.get("/share/{token}")
 def get_shared_file_info(token: str):
-    """Get info about a shared file (public)."""
+    """Get info about a shared file (no auth required)."""
     share = get_share_link(token)
     if not share:
         raise HTTPException(status_code=404, detail="Share link not found")
 
-    # Check expiration
+    # Check if expired
     if share["expires_at"]:
         from datetime import datetime
         if datetime.fromisoformat(share["expires_at"]) < datetime.now():
@@ -747,12 +815,12 @@ def get_shared_file_info(token: str):
 
 @app.post("/share/{token}/download")
 async def download_shared_file(token: str, request: Request):
-    """Download a shared file (public)."""
+    """Download a shared file (no auth required)."""
     share = get_share_link(token)
     if not share:
         raise HTTPException(status_code=404, detail="Share link not found")
 
-    # Check expiration
+    # Check if expired
     if share["expires_at"]:
         from datetime import datetime
         if datetime.fromisoformat(share["expires_at"]) < datetime.now():
@@ -762,14 +830,14 @@ async def download_shared_file(token: str, request: Request):
     if share["max_downloads"] and share["download_count"] >= share["max_downloads"]:
         raise HTTPException(status_code=410, detail="Download limit reached")
 
-    # Check password if required
+    # Verify password if set
     if share["has_password"]:
         data = await request.json()
         password = data.get("password", "")
         if not authentication(password, share["password_hash"]):
             raise HTTPException(status_code=401, detail="Invalid password")
 
-    # Increment download count
+    # Count this download
     increment_share_download(token)
 
     return FileResponse(
@@ -786,7 +854,7 @@ def get_activity(
     limit: int = Query(50, ge=1, le=100),
     current_user: str = Depends(get_current_user)
 ):
-    """Get user activity log."""
+    """Get user's activity history."""
     activities = get_user_activity(current_user, limit)
     return {"activities": activities}
 
@@ -795,7 +863,7 @@ def get_activity(
 
 @app.get("/storage")
 def get_storage_stats(current_user: str = Depends(get_current_user)):
-    """Get storage statistics."""
+    """Get storage usage statistics."""
     used = get_storage_used(current_user)
     file_count = get_file_count(current_user)
     
@@ -808,6 +876,7 @@ def get_storage_stats(current_user: str = Depends(get_current_user)):
     }
 
 
+# Start the server
 if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8000"))

@@ -1,3 +1,11 @@
+# GuardCloud Security
+# Handles password hashing, JWT tokens, and authentication
+#
+# This security file supports the following Functional Requirements:
+# FR-2: User authentication (login/signup) via JWT tokens and password hashing
+# FR-6: Data encryption in transit via secure token-based authentication
+# FR-20: Logout via token expiration (TOKEN_EXPIRY_MINUTES)
+
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import re
@@ -12,15 +20,15 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 TOKEN_EXPIRY_MINUTES = int(os.getenv("TOKEN_EXPIRY_MINUTES", "60"))
 
 def create_jwt_token(username):
-    """Create a JWT for the given username."""
+    """Create a JWT token for a logged in user."""
     expiration = datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRY_MINUTES)
     payload = {"sub": username, "exp": expiration}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def verify_jwt_token(token):
+    """Check if a JWT token is valid and not expired. Returns username or None."""
     if not token:
-        print("No token provided")
         return None
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -30,9 +38,11 @@ def verify_jwt_token(token):
     except jwt.InvalidTokenError:
         return None
 
+
 def password_req(password):
-    """Return an error string if password is weak, or [] if it's OK."""
+    """Check password strength. Returns error message or empty list if OK."""
     corrections = []
+    
     if len(password) < 12:
         corrections.append("at least 12 characters")
     if not re.search(r"[a-z]", password):
@@ -50,10 +60,12 @@ def password_req(password):
         return "Password needs " + ", ".join(corrections)
     return corrections
 
+
 def hash_it(password):
-    """Hash a plain-text password using bcrypt."""
+    """Hash a password using bcrypt."""
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
+
 def authentication(input_password, stored_hash):
-    """Check if the input password matches the stored bcrypt hash."""
+    """Verify a password against its stored hash."""
     return bcrypt.checkpw(input_password.encode("utf-8"), stored_hash.encode("utf-8"))
